@@ -34,8 +34,8 @@ optional — skipping step 4 in particular hides progress from the producer
 and reopens the alignment problems the v1.0 contract closed.
 
 1. **Pull producer state.** `git fetch origin` here AND
-   `git -C ../anti_i fetch origin` (the producer clone). Skim recent commits
-   on `../anti_i` main for any post-lock wire additions; if any new
+   `git -C ../sigil fetch origin` (the producer clone). Skim recent commits
+   on `../sigil` main for any post-lock wire additions; if any new
    `Evidence` variants, `tool` enum values, or `scope.kind` shapes have
    shipped, update `docs/superpowers/specs/2026-05-16-fleet-api-contract.md
    §14` as a new sub-section. The contract is the consumer-side mirror of
