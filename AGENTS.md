@@ -31,8 +31,8 @@ At the start of every session that touches Plan 02 or any later plan, run
 the following in order before doing new implementation work:
 
 1. **Pull producer state.** `git fetch origin` here AND
-   `git -C ../anti_i fetch origin` (the producer clone). Skim recent commits
-   on `../anti_i` main; if any new `Evidence` variants, `tool` enum values,
+   `git -C ../sigil fetch origin` (the producer clone). Skim recent commits
+   on `../sigil` main; if any new `Evidence` variants, `tool` enum values,
    or `scope.kind` shapes have shipped, add a sub-section to
    `docs/superpowers/specs/2026-05-16-fleet-api-contract.md §14`.
 2. **Check producer issues for new asks.**
