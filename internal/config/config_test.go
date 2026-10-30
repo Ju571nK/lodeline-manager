@@ -44,16 +44,19 @@ func unsetForTest(t *testing.T, key string) error {
 // fullValidEnv returns a complete, valid environment for the non-mock path.
 func fullValidEnv() map[string]string {
 	return map[string]string{
-		"LISTEN_ADDR":                 ":9999",
-		"SIGIL_SERVER_BASE_URL":       "http://localhost:9090",
-		"SIGIL_SERVER_READ_TOKEN":     "secret-token",
-		"MOCK_FLEET":                  "",
-		"TRIAGE_DB_PATH":              "/tmp/test-triage.sqlite",
-		"ADMIN_USERNAME":              "admin",
-		"ADMIN_PASSWORD_BCRYPT":       validBcryptHash,
-		"JWT_SECRET":                  validJWTSecret,
-		"JWT_TTL_HOURS":               "24",
-		"FLEET_POLL_INTERVAL_SECONDS": "10",
+		"LISTEN_ADDR":                   ":9999",
+		"SIGIL_SERVER_BASE_URL":         "http://localhost:9090",
+		"SIGIL_SERVER_READ_TOKEN":       "secret-token",
+		"MOCK_FLEET":                    "",
+		"TRIAGE_DB_PATH":                "/tmp/test-triage.sqlite",
+		"ADMIN_USERNAME":                "admin",
+		"ADMIN_PASSWORD_BCRYPT":         validBcryptHash,
+		"JWT_SECRET":                    validJWTSecret,
+		"JWT_TTL_HOURS":                 "24",
+		"FLEET_POLL_INTERVAL_SECONDS":   "10",
+		"SIGIL_SERVER_CA_PATH":          "",
+		"SIGIL_SERVER_CLIENT_CERT_PATH": "",
+		"SIGIL_SERVER_CLIENT_KEY_PATH":  "",
 	}
 }
 
@@ -341,12 +344,23 @@ func TestLoad_ServerTLSNeedsHTTPS(t *testing.T) {
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "https://")
 
-	env["SIGIL_SERVER_BASE_URL"] = "https://sigil.example:8443"
+	env["SIGIL_SERVER_BASE_URL"] = "HTTPS://sigil.example:8443"
 	setEnv(t, env)
 	c, err := Load()
 	require.NoError(t, err)
 	require.NotNil(t, c.SigilServerTLS)
 	assert.NotNil(t, c.SigilServerTLS.RootCAs)
+}
+
+func TestLoad_MockFleetIgnoresServerTLS(t *testing.T) {
+	env := fullValidEnv()
+	env["MOCK_FLEET"] = "1"
+	env["SIGIL_SERVER_BASE_URL"] = ""
+	env["SIGIL_SERVER_CA_PATH"] = filepath.Join(t.TempDir(), "absent.crt")
+	setEnv(t, env)
+	c, err := Load()
+	require.NoError(t, err)
+	assert.Nil(t, c.SigilServerTLS)
 }
 
 // testCAPEM is a throwaway self-signed certificate; only its PEM shape matters.

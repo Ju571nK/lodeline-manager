@@ -22,7 +22,10 @@ func NewFromConfig(cfg *config.Config) Client {
 	} else {
 		h := NewHTTPClient(cfg.SigilServerBaseURL, cfg.SigilServerReadToken, 0)
 		if cfg.SigilServerTLS != nil {
-			t := http.DefaultTransport.(*http.Transport).Clone()
+			t := &http.Transport{Proxy: http.ProxyFromEnvironment}
+			if d, ok := http.DefaultTransport.(*http.Transport); ok {
+				t = d.Clone()
+			}
 			t.TLSClientConfig = cfg.SigilServerTLS
 			h.httpClient.Transport = t
 		}

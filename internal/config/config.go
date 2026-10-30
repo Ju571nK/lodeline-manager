@@ -13,6 +13,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/url"
 	"os"
 	"strconv"
 	"strings"
@@ -104,11 +105,13 @@ func Load() (*Config, error) {
 		return nil, err
 	}
 
-	if c.SigilServerTLS, err = loadServerTLS(); err != nil {
-		return nil, err
-	}
-	if c.SigilServerTLS != nil && !strings.HasPrefix(c.SigilServerBaseURL, "https://") {
-		return nil, errors.New("config: SIGIL_SERVER_CA_PATH / SIGIL_SERVER_CLIENT_CERT_PATH need an https:// SIGIL_SERVER_BASE_URL")
+	if !c.MockFleet {
+		if c.SigilServerTLS, err = loadServerTLS(); err != nil {
+			return nil, err
+		}
+		if u, perr := url.Parse(c.SigilServerBaseURL); c.SigilServerTLS != nil && (perr != nil || !strings.EqualFold(u.Scheme, "https")) {
+			return nil, errors.New("config: SIGIL_SERVER_CA_PATH / SIGIL_SERVER_CLIENT_CERT_PATH need an https:// SIGIL_SERVER_BASE_URL")
+		}
 	}
 
 	ttlHours, err := intDefault("JWT_TTL_HOURS", 12)
