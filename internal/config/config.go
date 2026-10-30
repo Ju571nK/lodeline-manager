@@ -8,6 +8,8 @@
 package config
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -30,6 +32,10 @@ type Config struct {
 	SigilServerBaseURL   string // SIGIL_SERVER_BASE_URL, required unless MockFleet
 	SigilServerReadToken string // SIGIL_SERVER_READ_TOKEN, required unless MockFleet
 	MockFleet            bool   // MOCK_FLEET=1 swaps in the mock client
+	// SigilServerTLS is non-nil when SIGIL_SERVER_CA_PATH or the
+	// SIGIL_SERVER_CLIENT_CERT_PATH / SIGIL_SERVER_CLIENT_KEY_PATH pair is set:
+	// a custom CA and/or the client certificate an mTLS sigil-server demands.
+	SigilServerTLS *tls.Config
 
 	// Triage state DB
 	TriageDBPath string // TRIAGE_DB_PATH, default "./var/triage.sqlite"
@@ -87,6 +93,7 @@ func Load() (*Config, error) {
 		JWTSecret: []byte(strings.TrimSpace(os.Getenv("JWT_SECRET"))),
 	}
 
+	var err error
 	c.OIDC = auth.OIDCConfig{Issuer: strings.TrimSpace(os.Getenv("OIDC_ISSUER_URL")), ClientID: strings.TrimSpace(os.Getenv("OIDC_CLIENT_ID")), ClientSecret: os.Getenv("OIDC_CLIENT_SECRET"), RedirectURL: strings.TrimSpace(os.Getenv("OIDC_REDIRECT_URL"))}
 	if raw := os.Getenv("OIDC_ALLOWED_SUBJECTS"); raw != "" {
 		if err := json.Unmarshal([]byte(raw), &c.OIDC.AllowedSubjects); err != nil {
@@ -95,6 +102,13 @@ func Load() (*Config, error) {
 	}
 	if err := c.OIDC.Validate(); err != nil {
 		return nil, err
+	}
+
+	if c.SigilServerTLS, err = loadServerTLS(); err != nil {
+		return nil, err
+	}
+	if c.SigilServerTLS != nil && !strings.HasPrefix(c.SigilServerBaseURL, "https://") {
+		return nil, errors.New("config: SIGIL_SERVER_CA_PATH / SIGIL_SERVER_CLIENT_CERT_PATH need an https:// SIGIL_SERVER_BASE_URL")
 	}
 
 	ttlHours, err := intDefault("JWT_TTL_HOURS", 12)
@@ -163,6 +177,40 @@ func (c *Config) validate() error {
 	}
 
 	return nil
+}
+
+// loadServerTLS reads the optional sigil-server CA and client certificate.
+// It returns nil when none of the three paths is set.
+func loadServerTLS() (*tls.Config, error) {
+	caPath := strings.TrimSpace(os.Getenv("SIGIL_SERVER_CA_PATH"))
+	certPath := strings.TrimSpace(os.Getenv("SIGIL_SERVER_CLIENT_CERT_PATH"))
+	keyPath := strings.TrimSpace(os.Getenv("SIGIL_SERVER_CLIENT_KEY_PATH"))
+	if caPath == "" && certPath == "" && keyPath == "" {
+		return nil, nil
+	}
+	if (certPath == "") != (keyPath == "") {
+		return nil, errors.New("config: SIGIL_SERVER_CLIENT_CERT_PATH and SIGIL_SERVER_CLIENT_KEY_PATH must be set together")
+	}
+	tc := &tls.Config{MinVersion: tls.VersionTLS12}
+	if caPath != "" {
+		pem, err := os.ReadFile(caPath)
+		if err != nil {
+			return nil, fmt.Errorf("config: SIGIL_SERVER_CA_PATH: %w", err)
+		}
+		pool := x509.NewCertPool()
+		if !pool.AppendCertsFromPEM(pem) {
+			return nil, fmt.Errorf("config: SIGIL_SERVER_CA_PATH: no PEM certificate in %s", caPath)
+		}
+		tc.RootCAs = pool
+	}
+	if certPath != "" {
+		pair, err := tls.LoadX509KeyPair(certPath, keyPath)
+		if err != nil {
+			return nil, fmt.Errorf("config: SIGIL_SERVER_CLIENT_CERT_PATH / SIGIL_SERVER_CLIENT_KEY_PATH: %w", err)
+		}
+		tc.Certificates = []tls.Certificate{pair}
+	}
+	return tc, nil
 }
 
 func strDefault(key, fallback string) string {

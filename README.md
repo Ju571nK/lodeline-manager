@@ -53,16 +53,18 @@ open http://localhost:8080
 ## Quickstart (connected to sigil-server)
 
 Real fleet data from a running [Ju571nK/sigil](https://github.com/Ju571nK/sigil)
-sigil-server. The read API must be enabled on the server side — see the
-sigil README for the `SIGIL_SERVER_READ_API_ENABLED` + `SIGIL_SERVER_READ_TOKEN`
-env vars.
+sigil-server. The read API is on when sigil-server has `SIGIL_SERVER_READ_TOKEN`
+set (see its `docs/install-server.md` §5). A sigil-server running mTLS also
+requires a client certificate from the manager, signed by its `client_ca_path`.
 
 ```bash
 cp .env.example .env
 # Edit .env:
 #   unset / comment out MOCK_FLEET
-#   SIGIL_SERVER_BASE_URL=http://your-sigil-server:9090
+#   SIGIL_SERVER_BASE_URL=https://your-sigil-server:8443
 #   SIGIL_SERVER_READ_TOKEN=<the same secret you set on sigil-server>
+#   SIGIL_SERVER_CA_PATH / SIGIL_SERVER_CLIENT_CERT_PATH / SIGIL_SERVER_CLIENT_KEY_PATH
+#     (needed when sigil-server runs mTLS)
 #   ADMIN_PASSWORD_BCRYPT=<bcrypt hash>
 #   JWT_SECRET=<32+ byte random>
 
@@ -81,6 +83,9 @@ The process refuses to start if any **required** var is missing.
 | `LISTEN_ADDR` | no | `:8080` | HTTP listen address |
 | `SIGIL_SERVER_BASE_URL` | yes (unless `MOCK_FLEET=1`) | — | Base URL of sigil-server `/v1/*` API, no trailing slash |
 | `SIGIL_SERVER_READ_TOKEN` | yes (unless `MOCK_FLEET=1`) | — | Bearer token sigil-server validates per contract §F2 |
+| `SIGIL_SERVER_CA_PATH` | no | system roots | PEM CA that signed sigil-server's certificate (needs an `https://` base URL) |
+| `SIGIL_SERVER_CLIENT_CERT_PATH` | no (set with key) | — | Client certificate for an mTLS sigil-server, signed by its `client_ca_path` |
+| `SIGIL_SERVER_CLIENT_KEY_PATH` | no (set with cert) | — | Private key for `SIGIL_SERVER_CLIENT_CERT_PATH` |
 | `MOCK_FLEET` | no | `0` | Set to `1` to bypass HTTP and use the in-process Mock fixture |
 | `TRIAGE_DB_PATH` | no | `./var/triage.sqlite` | SQLite file for ack/assign/notes; directory must be writable |
 | `ADMIN_USERNAME` | yes | — | Login username for the single admin |

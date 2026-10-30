@@ -1,6 +1,7 @@
 package fleet
 
 import (
+	"net/http"
 	"time"
 
 	"github.com/Ju571nK/sigil-manager/internal/config"
@@ -8,7 +9,8 @@ import (
 
 // NewFromConfig returns the [Client] selected by the operator's config.
 // MOCK_FLEET=1 yields [MockClient]; otherwise an [HTTPClient] pointed at
-// SIGIL_SERVER_BASE_URL with the SIGIL_SERVER_READ_TOKEN bearer.
+// SIGIL_SERVER_BASE_URL with the SIGIL_SERVER_READ_TOKEN bearer, presenting
+// the configured client certificate when sigil-server runs mTLS.
 //
 // Unless FLEET_CACHE_DISABLED=1, the chosen client is wrapped in a
 // [CachingClient] so concurrent browser polling collapses onto a steady
@@ -18,7 +20,13 @@ func NewFromConfig(cfg *config.Config) Client {
 	if cfg.IsMockFleet() {
 		base = NewMock(time.Time{})
 	} else {
-		base = NewHTTPClient(cfg.SigilServerBaseURL, cfg.SigilServerReadToken, 0)
+		h := NewHTTPClient(cfg.SigilServerBaseURL, cfg.SigilServerReadToken, 0)
+		if cfg.SigilServerTLS != nil {
+			t := http.DefaultTransport.(*http.Transport).Clone()
+			t.TLSClientConfig = cfg.SigilServerTLS
+			h.httpClient.Transport = t
+		}
+		base = h
 	}
 
 	if cfg.FleetCacheDisabled {
