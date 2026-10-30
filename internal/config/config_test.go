@@ -2,6 +2,8 @@ package config
 
 import (
 	"errors"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -42,16 +44,19 @@ func unsetForTest(t *testing.T, key string) error {
 // fullValidEnv returns a complete, valid environment for the non-mock path.
 func fullValidEnv() map[string]string {
 	return map[string]string{
-		"LISTEN_ADDR":                 ":9999",
-		"SIGIL_SERVER_BASE_URL":       "http://localhost:9090",
-		"SIGIL_SERVER_READ_TOKEN":     "secret-token",
-		"MOCK_FLEET":                  "",
-		"TRIAGE_DB_PATH":              "/tmp/test-triage.sqlite",
-		"ADMIN_USERNAME":              "admin",
-		"ADMIN_PASSWORD_BCRYPT":       validBcryptHash,
-		"JWT_SECRET":                  validJWTSecret,
-		"JWT_TTL_HOURS":               "24",
-		"FLEET_POLL_INTERVAL_SECONDS": "10",
+		"LISTEN_ADDR":                   ":9999",
+		"SIGIL_SERVER_BASE_URL":         "http://localhost:9090",
+		"SIGIL_SERVER_READ_TOKEN":       "secret-token",
+		"MOCK_FLEET":                    "",
+		"TRIAGE_DB_PATH":                "/tmp/test-triage.sqlite",
+		"ADMIN_USERNAME":                "admin",
+		"ADMIN_PASSWORD_BCRYPT":         validBcryptHash,
+		"JWT_SECRET":                    validJWTSecret,
+		"JWT_TTL_HOURS":                 "24",
+		"FLEET_POLL_INTERVAL_SECONDS":   "10",
+		"SIGIL_SERVER_CA_PATH":          "",
+		"SIGIL_SERVER_CLIENT_CERT_PATH": "",
+		"SIGIL_SERVER_CLIENT_KEY_PATH":  "",
 	}
 }
 
@@ -276,3 +281,97 @@ func TestOIDCEnvironment(t *testing.T) {
 	_, err = Load()
 	require.ErrorContains(t, err, "OIDC_ALLOWED_SUBJECTS")
 }
+
+func TestLoad_ServerTLSUnsetLeavesDefaultTransport(t *testing.T) {
+	setEnv(t, fullValidEnv())
+	c, err := Load()
+	require.NoError(t, err)
+	assert.Nil(t, c.SigilServerTLS)
+}
+
+func TestLoad_ServerTLSErrors(t *testing.T) {
+	dir := t.TempDir()
+	notPEM := filepath.Join(dir, "not-pem")
+	require.NoError(t, os.WriteFile(notPEM, []byte("hello"), 0o600))
+
+	for name, tc := range map[string]struct {
+		env  map[string]string
+		want string
+	}{
+		"cert without key": {
+			map[string]string{"SIGIL_SERVER_CLIENT_CERT_PATH": notPEM},
+			"must be set together",
+		},
+		"key without cert": {
+			map[string]string{"SIGIL_SERVER_CLIENT_KEY_PATH": notPEM},
+			"must be set together",
+		},
+		"missing CA file": {
+			map[string]string{"SIGIL_SERVER_CA_PATH": filepath.Join(dir, "absent.crt")},
+			"SIGIL_SERVER_CA_PATH",
+		},
+		"CA file without a certificate": {
+			map[string]string{"SIGIL_SERVER_CA_PATH": notPEM},
+			"no PEM certificate",
+		},
+		"unreadable key pair": {
+			map[string]string{"SIGIL_SERVER_CLIENT_CERT_PATH": notPEM, "SIGIL_SERVER_CLIENT_KEY_PATH": notPEM},
+			"SIGIL_SERVER_CLIENT_CERT_PATH",
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			env := fullValidEnv()
+			env["SIGIL_SERVER_BASE_URL"] = "https://sigil.example:8443"
+			for k, v := range tc.env {
+				env[k] = v
+			}
+			setEnv(t, env)
+			_, err := Load()
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), tc.want)
+		})
+	}
+}
+
+func TestLoad_ServerTLSNeedsHTTPS(t *testing.T) {
+	dir := t.TempDir()
+	ca := filepath.Join(dir, "ca.crt")
+	require.NoError(t, os.WriteFile(ca, []byte(testCAPEM), 0o600))
+	env := fullValidEnv()
+	env["SIGIL_SERVER_CA_PATH"] = ca
+	setEnv(t, env)
+	_, err := Load()
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "https://")
+
+	env["SIGIL_SERVER_BASE_URL"] = "HTTPS://sigil.example:8443"
+	setEnv(t, env)
+	c, err := Load()
+	require.NoError(t, err)
+	require.NotNil(t, c.SigilServerTLS)
+	assert.NotNil(t, c.SigilServerTLS.RootCAs)
+}
+
+func TestLoad_MockFleetIgnoresServerTLS(t *testing.T) {
+	env := fullValidEnv()
+	env["MOCK_FLEET"] = "1"
+	env["SIGIL_SERVER_BASE_URL"] = ""
+	env["SIGIL_SERVER_CA_PATH"] = filepath.Join(t.TempDir(), "absent.crt")
+	setEnv(t, env)
+	c, err := Load()
+	require.NoError(t, err)
+	assert.Nil(t, c.SigilServerTLS)
+}
+
+// testCAPEM is a throwaway self-signed certificate; only its PEM shape matters.
+const testCAPEM = `-----BEGIN CERTIFICATE-----
+MIIBVzCB/qADAgECAhRBNVQze3ZuzYO01kKjJ9HeL7h4wjAKBggqhkjOPQQDAjAS
+MRAwDgYDVQQDDAd0ZXN0LWNhMB4XDTI2MTAzMDA2NDQzNFoXDTM2MTAyNzA2NDQz
+NFowEjEQMA4GA1UEAwwHdGVzdC1jYTBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IA
+BLutJyHS7hk0f9fFfQHcHwMx28zLWa7+2a+p0oY8ZJiGzobaUIv1B3RxLvtO5QX9
+uR1fDYqpcXbLXRkzeklQPE2jMjAwMB0GA1UdDgQWBBT0z9lg5s2qGEurn1se56Od
+f7hQxDAPBgNVHRMBAf8EBTADAQH/MAoGCCqGSM49BAMCA0gAMEUCIQDXTkFv4+Q2
+QxY1BNHTcGHgwp5imTTHlf75AOKJjQkN0QIgJel6p0vI44UHLKFaJhBtMZ7D39mS
+UU27/7V3jmgz164=
+-----END CERTIFICATE-----
+`
