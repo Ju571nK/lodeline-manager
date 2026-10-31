@@ -43,6 +43,10 @@ func run() error {
 		return err
 	}
 
+	if legacy := config.LegacyEnvNames(os.Environ()); len(legacy) > 0 {
+		log.Printf("lodeline-manager: WARNING: ignoring renamed SIGIL_* env vars %v; see docs/migrate-from-sigil.md", legacy)
+	}
+
 	repo, err := triage.Open(cfg.TriageDBPath)
 	if err != nil {
 		return err

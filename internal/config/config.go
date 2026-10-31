@@ -68,6 +68,18 @@ func (c *Config) IsMockFleet() bool {
 // empty.
 var ErrMissingRequired = errors.New("config: required env var unset")
 
+// LegacyEnvNames returns the names, never the values, of the former SIGIL_*
+// variables present in environ. Diagnostic only: Load never reads them.
+func LegacyEnvNames(environ []string) []string {
+	var names []string
+	for _, kv := range environ {
+		if name, _, _ := strings.Cut(kv, "="); strings.HasPrefix(name, "SIGIL_") {
+			names = append(names, name)
+		}
+	}
+	return names
+}
+
 // Load reads the process environment and returns a validated Config.
 //
 // Validation:

@@ -375,3 +375,9 @@ QxY1BNHTcGHgwp5imTTHlf75AOKJjQkN0QIgJel6p0vI44UHLKFaJhBtMZ7D39mS
 UU27/7V3jmgz164=
 -----END CERTIFICATE-----
 `
+
+func TestLegacyEnvNames_ReportsNamesNotValues(t *testing.T) {
+	got := LegacyEnvNames([]string{"SIGIL_INSECURE_COOKIE=hunter2-secret", "LODELINE_X=1", "NOT_SIGIL_Y=2"})
+	assert.Equal(t, []string{"SIGIL_INSECURE_COOKIE"}, got)
+	assert.NotContains(t, strings.Join(got, " "), "hunter2-secret")
+}
