@@ -1,4 +1,4 @@
-// Package triage owns sigil-manager's local SQLite store for alert
+// Package triage owns lodeline-manager's local SQLite store for alert
 // triage state — `(status, assignee, notes, log)` keyed by
 // `(host_id, event_id)` per the fleet API contract §5.8. The store is
 // consumer-local; producer never reads from or writes to it. See

@@ -10,7 +10,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/stretchr/testify/require"
 
-	"github.com/Ju571nK/sigil-manager/internal/testutil"
+	"github.com/Ju571nK/lodeline-manager/internal/testutil"
 )
 
 func TestOIDCFlow(t *testing.T) {

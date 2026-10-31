@@ -6,8 +6,8 @@ import { defineConfig, devices } from '@playwright/test';
  * routing + cookie semantics + chi middleware that ship in Docker.
  *
  * Before running, the harness expects:
- *   - the binary built at `../sigil-manager` (Makefile `make e2e` handles this),
- *   - `MOCK_FLEET=1` so no live sigil-server is needed,
+ *   - the binary built at `../lodeline-manager` (Makefile `make e2e` handles this),
+ *   - `MOCK_FLEET=1` so no live lodeline-server is needed,
  *   - the env vars below (which match `.env.example`).
  *
  * Tests share one server instance; we put the per-test triage DB under a
@@ -37,18 +37,18 @@ export default defineConfig({
   },
 
   webServer: {
-    command: '../sigil-manager',
+    command: '../lodeline-manager',
     url: `${BASE_URL}/api/health`,
     reuseExistingServer: !process.env.CI,
     timeout: 30_000,
     env: {
       LISTEN_ADDR: `:${PORT}`,
       MOCK_FLEET: '1',
-      TRIAGE_DB_PATH: '/tmp/sigil-manager-e2e-triage.sqlite',
+      TRIAGE_DB_PATH: '/tmp/lodeline-manager-e2e-triage.sqlite',
       ADMIN_USERNAME: 'admin',
       ADMIN_PASSWORD_BCRYPT: TEST_ADMIN_HASH,
       JWT_SECRET: '0123456789abcdefghijklmnopqrstuv',
-      SIGIL_INSECURE_COOKIE: '1',
+      LODELINE_INSECURE_COOKIE: '1',
     },
   },
 

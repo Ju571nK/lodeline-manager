@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/Ju571nK/sigil-manager/internal/httputil"
+	"github.com/Ju571nK/lodeline-manager/internal/httputil"
 )
 
 // Version is the build version string, injected at link time via -ldflags.

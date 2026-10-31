@@ -26,7 +26,7 @@ Leave all five unset to disable organization login. Partial configuration,
 empty admission lists and invalid URLs stop startup. Local `ADMIN_USERNAME`,
 `ADMIN_PASSWORD_BCRYPT` and `JWT_SECRET` remain required. Keep local recovery
 credentials separate from organizational credentials. Leave
-`SIGIL_INSECURE_COOKIE` unset in production.
+`LODELINE_INSECURE_COOKIE` unset in production.
 
 Only `openid` scope is requested. No email/group claims or proprietary API are
 required. Obtain the application's actual subject values from the provider's

@@ -1,14 +1,14 @@
-# sigil-manager
+# lodeline-manager
 
 ![License](https://img.shields.io/badge/license-Apache%202.0-blue)
 
-Self-hostable web console for the [Sigil](https://github.com/Ju571nK/sigil)
-AI-SPM project. Reads fleet data from `sigil-server`; owns local triage
+Self-hostable web console for the [Lodeline](https://github.com/Ju571nK/lodeline)
+AI-SPM project. Reads fleet data from `lodeline-server`; owns local triage
 state (acknowledge / assign / resolve / notes) for SOC analyst workflow.
 
 > **Status:** Plan 02 (Foundation + Alerts queue) — feature-branch in
 > review. Login → /alerts → slide-over → ack/assign/notes round-trips
-> against either a live `sigil-server` or the built-in mock. See
+> against either a live `lodeline-server` or the built-in mock. See
 > [`docs/superpowers/plans/2026-05-18-plan-02-foundation-and-alerts-queue.md`](docs/superpowers/plans/2026-05-18-plan-02-foundation-and-alerts-queue.md).
 
 ## Stack
@@ -28,7 +28,7 @@ state (acknowledge / assign / resolve / notes) for SOC analyst workflow.
 
 ## Quickstart (mock mode)
 
-No `sigil-server` required — boots the in-process Mock FleetClient with
+No `lodeline-server` required — boots the in-process Mock FleetClient with
 30 deterministic events covering all four AI-Guard tools + three scope
 shapes from contract §14.5.
 
@@ -39,7 +39,7 @@ cp .env.example .env
 # to a fresh 32+ byte value. See "Configuration" below for the snippets.
 
 # 2. Run the prebuilt binary
-MOCK_FLEET=1 make build && MOCK_FLEET=1 ./sigil-manager
+MOCK_FLEET=1 make build && MOCK_FLEET=1 ./lodeline-manager
 # Or with hot reload:
 #   Terminal 1 (Go):  MOCK_FLEET=1 make dev-go
 #   Terminal 2 (Vite): make dev-web
@@ -50,26 +50,26 @@ open http://localhost:8080
 # Use ADMIN_USERNAME + the plaintext password you hashed for ADMIN_PASSWORD_BCRYPT.
 ```
 
-## Quickstart (connected to sigil-server)
+## Quickstart (connected to lodeline-server)
 
-Real fleet data from a running [Ju571nK/sigil](https://github.com/Ju571nK/sigil)
-sigil-server. The read API is on when sigil-server has `SIGIL_SERVER_READ_TOKEN`
-set (see its `docs/install-server.md` §5). A sigil-server running mTLS also
+Real fleet data from a running [Ju571nK/lodeline](https://github.com/Ju571nK/lodeline)
+lodeline-server. The read API is on when lodeline-server has `LODELINE_SERVER_READ_TOKEN`
+set (see its `docs/install-server.md` §5). A lodeline-server running mTLS also
 requires a client certificate from the manager, signed by its `client_ca_path`.
 
 ```bash
 cp .env.example .env
 # Edit .env:
 #   unset / comment out MOCK_FLEET
-#   SIGIL_SERVER_BASE_URL=https://your-sigil-server:8443
-#   SIGIL_SERVER_READ_TOKEN=<the same secret you set on sigil-server>
-#   SIGIL_SERVER_CA_PATH / SIGIL_SERVER_CLIENT_CERT_PATH / SIGIL_SERVER_CLIENT_KEY_PATH
-#     (needed when sigil-server runs mTLS)
+#   LODELINE_SERVER_BASE_URL=https://your-lodeline-server:8443
+#   LODELINE_SERVER_READ_TOKEN=<the same secret you set on lodeline-server>
+#   LODELINE_SERVER_CA_PATH / LODELINE_SERVER_CLIENT_CERT_PATH / LODELINE_SERVER_CLIENT_KEY_PATH
+#     (needed when lodeline-server runs mTLS)
 #   ADMIN_PASSWORD_BCRYPT=<bcrypt hash>
 #   JWT_SECRET=<32+ byte random>
 
 make build
-./sigil-manager
+./lodeline-manager
 open http://localhost:8080
 ```
 
@@ -81,11 +81,11 @@ The process refuses to start if any **required** var is missing.
 | Variable | Required | Default | Purpose |
 |---|---|---|---|
 | `LISTEN_ADDR` | no | `:8080` | HTTP listen address |
-| `SIGIL_SERVER_BASE_URL` | yes (unless `MOCK_FLEET=1`) | — | Base URL of sigil-server `/v1/*` API, no trailing slash |
-| `SIGIL_SERVER_READ_TOKEN` | yes (unless `MOCK_FLEET=1`) | — | Bearer token sigil-server validates per contract §F2 |
-| `SIGIL_SERVER_CA_PATH` | no | system roots | PEM CA that signed sigil-server's certificate (needs an `https://` base URL) |
-| `SIGIL_SERVER_CLIENT_CERT_PATH` | no (set with key) | — | Client certificate for an mTLS sigil-server, signed by its `client_ca_path` |
-| `SIGIL_SERVER_CLIENT_KEY_PATH` | no (set with cert) | — | Private key for `SIGIL_SERVER_CLIENT_CERT_PATH` |
+| `LODELINE_SERVER_BASE_URL` | yes (unless `MOCK_FLEET=1`) | — | Base URL of lodeline-server `/v1/*` API, no trailing slash |
+| `LODELINE_SERVER_READ_TOKEN` | yes (unless `MOCK_FLEET=1`) | — | Bearer token lodeline-server validates per contract §F2 |
+| `LODELINE_SERVER_CA_PATH` | no | system roots | PEM CA that signed lodeline-server's certificate (needs an `https://` base URL) |
+| `LODELINE_SERVER_CLIENT_CERT_PATH` | no (set with key) | — | Client certificate for an mTLS lodeline-server, signed by its `client_ca_path` |
+| `LODELINE_SERVER_CLIENT_KEY_PATH` | no (set with cert) | — | Private key for `LODELINE_SERVER_CLIENT_CERT_PATH` |
 | `MOCK_FLEET` | no | `0` | Set to `1` to bypass HTTP and use the in-process Mock fixture |
 | `TRIAGE_DB_PATH` | no | `./var/triage.sqlite` | SQLite file for ack/assign/notes; directory must be writable |
 | `ADMIN_USERNAME` | yes | — | Login username for the single admin |
@@ -93,7 +93,7 @@ The process refuses to start if any **required** var is missing.
 | `JWT_SECRET` | yes | — | HS256 signing secret for session JWTs (≥32 bytes) |
 | `JWT_TTL_HOURS` | no | `12` | Session lifetime in hours (UI/UX §9) |
 | `FLEET_POLL_INTERVAL_SECONDS` | no | `5` | How often the SPA polls `/fleet/events` (UI/UX §7.2) |
-| `SIGIL_INSECURE_COOKIE` | no | unset | Set to `1` for local-dev only to clear the cookie `Secure` flag |
+| `LODELINE_INSECURE_COOKIE` | no | unset | Set to `1` for local-dev only to clear the cookie `Secure` flag |
 
 Optional organization login uses a single generic OIDC provider. Configure
 `OIDC_ISSUER_URL`, `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET`, `OIDC_REDIRECT_URL` and
@@ -120,7 +120,7 @@ openssl rand -base64 32
 |------------------|---------------------------------------------------------|
 | `make dev-go`    | Go server with hot reload via air (port 8080)           |
 | `make dev-web`   | Vite frontend dev server (port 5173, proxies `/api`)    |
-| `make build`     | Build SPA, embed it, build Go binary → `./sigil-manager` |
+| `make build`     | Build SPA, embed it, build Go binary → `./lodeline-manager` |
 | `make test`      | All unit tests (Go + Vitest)                            |
 | `make e2e`       | Build binary, then run Playwright vs. embedded SPA      |
 | `make lint`      | golangci-lint + Biome                                   |
@@ -130,14 +130,14 @@ openssl rand -base64 32
 
 ```bash
 make build
-./sigil-manager
+./lodeline-manager
 # Default port :8080. Override with LISTEN_ADDR=:9000.
 ```
 
 ## Architecture
 
 ```
-sigil-manager (single Go binary)
+lodeline-manager (single Go binary)
 ├── chi router
 ├── /api/health         → liveness probe (unauthed)
 ├── /api/v1/auth/*      → login / logout / me (cookie JWT)

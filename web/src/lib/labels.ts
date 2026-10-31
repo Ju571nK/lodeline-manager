@@ -43,7 +43,7 @@ export function humanKind(kind: string): string {
 }
 
 /**
- * Builds a one-line queue/slide-over title for a sigil-hook evidence
+ * Builds a one-line queue/slide-over title for a lodeline-hook evidence
  * (contract §14.9.2). Shows the agent, decision and reported mode without
  * inferring an execution outcome. Invocations honor `other_label`; decisions
  * include the rule ID when present.

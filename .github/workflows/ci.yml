@@ -41,7 +41,7 @@ jobs:
           cp -r dist ../internal/server/dist
 
       - name: Go build
-        run: go build -o sigil-manager ./cmd/sigil-manager
+        run: go build -o lodeline-manager ./cmd/lodeline-manager
 
   web:
     name: Web (test + lint + build)

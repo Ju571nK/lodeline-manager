@@ -1,11 +1,11 @@
-// Package fleet defines the consumer-side interface to sigil-server's
+// Package fleet defines the consumer-side interface to lodeline-server's
 // `/v1/*` read API (see docs/superpowers/specs/2026-05-16-fleet-api-contract.md
-// v1.0, locked against sigil 3b.4 + 3b.6 / 3b.6.1 / 3b.6.2 additive notes
+// v1.0, locked against lodeline 3b.4 + 3b.6 / 3b.6.1 / 3b.6.2 additive notes
 // in §14).
 //
 // Two implementations satisfy [Client]:
 //   - [HttpClient] (internal/fleet/http.go, Plan 02 Task 3) — talks to a real
-//     sigil-server over HTTP with shared bearer auth.
+//     lodeline-server over HTTP with shared bearer auth.
 //   - [MockClient] (internal/fleet/mock.go, Plan 02 Task 4) — in-process
 //     deterministic fixtures for local dev (MOCK_FLEET=1).
 //
@@ -25,8 +25,8 @@ import (
 	"time"
 )
 
-// Client is the read-only Fleet API surface that sigil-manager consumes from
-// sigil-server. Every method maps 1:1 to a contract §5 endpoint. Implementors
+// Client is the read-only Fleet API surface that lodeline-manager consumes from
+// lodeline-server. Every method maps 1:1 to a contract §5 endpoint. Implementors
 // MUST be safe for concurrent use.
 type Client interface {
 	// Healthz hits `GET /v1/healthz` (contract §5.1). No auth required.
@@ -62,7 +62,7 @@ type Client interface {
 	FleetRisk(ctx context.Context, p RiskParams) (*RiskPage, error)
 
 	// FleetCompliance hits `GET /v1/fleet/compliance` (contract §5.6). Raw
-	// signals only — sigil-manager derives the status pill client-side per
+	// signals only — lodeline-manager derives the status pill client-side per
 	// F13.
 	FleetCompliance(ctx context.Context, p ComplianceParams) (*CompliancePage, error)
 }
@@ -78,16 +78,16 @@ var ErrNotFound = errors.New("fleet: not found")
 
 // ErrReadAPIDisabled wraps a 404 response from a non-id endpoint
 // (`/v1/meta`, `/v1/fleet/risk`, etc.). Per contract §3.4 / §6.1, the read
-// API returns 404 with no body when SIGIL_SERVER_READ_TOKEN is unset on the
-// sigil-server side, so the consumer cannot distinguish it from a 404 from
-// other read paths. Surfaced to the Settings banner: "sigil-server has the
-// read API disabled (set SIGIL_SERVER_READ_TOKEN there)."
-var ErrReadAPIDisabled = errors.New("fleet: read API disabled on sigil-server")
+// API returns 404 with no body when LODELINE_SERVER_READ_TOKEN is unset on the
+// lodeline-server side, so the consumer cannot distinguish it from a 404 from
+// other read paths. Surfaced to the Settings banner: "lodeline-server has the
+// read API disabled (set LODELINE_SERVER_READ_TOKEN there)."
+var ErrReadAPIDisabled = errors.New("fleet: read API disabled on lodeline-server")
 
 // ErrUnauthorized wraps a 401 — bearer missing or wrong (contract §6.1).
 var ErrUnauthorized = errors.New("fleet: unauthorized")
 
-// ErrServiceUnavailable wraps a 503 — sigil-server's boot rebuild is still
+// ErrServiceUnavailable wraps a 503 — lodeline-server's boot rebuild is still
 // in progress (F15). The HTTP impl populates [ServiceUnavailableError.RetryAfter]
 // from the `Retry-After` header.
 var ErrServiceUnavailable = errors.New("fleet: service unavailable")
@@ -127,7 +127,7 @@ func (e *APIError) Error() string {
 type EventsParams struct {
 	Cursor           string    // opaque, from prior NextCursor
 	Limit            int       // silently clamped [1,1000] server-side (§6.2)
-	HostIDs          []string  // comma-joined `?host_id=a,b` (sigil-server #75)
+	HostIDs          []string  // comma-joined `?host_id=a,b` (lodeline-server #75)
 	Since            time.Time // inclusive, agent's event.ts
 	Until            time.Time // exclusive, agent's event.ts
 	EvidenceKinds    []string  // comma-list, snake_case
@@ -186,7 +186,7 @@ type Meta struct {
 }
 
 // ActiveHosts is the active-host count reported on `/v1/meta` (contract
-// §14.13, producer sigil v0.9.0). For sigil-server 0.8.x and earlier, which
+// §14.13, producer lodeline v0.9.0). For lodeline-server 0.8.x and earlier, which
 // report the same two numbers inside a `license` object instead, the HTTP
 // client fills this in from that object (see [HTTPClient.Meta]).
 type ActiveHosts struct {
@@ -195,7 +195,7 @@ type ActiveHosts struct {
 }
 
 // AuditHead is the optional signed head of the audit log on `/v1/meta`
-// (contract §14.9.3, producer sigil `2b5d61c`). Nil when audit signing is
+// (contract §14.9.3, producer lodeline `2b5d61c`). Nil when audit signing is
 // disabled. The console treats it as opaque (it does not verify the chain).
 type AuditHead struct {
 	Seq      int64  `json:"seq"`
@@ -284,7 +284,7 @@ type HostDetail struct {
 }
 
 // HostMeta is the verbatim wire payload of the latest HostMetaSnapshot
-// evidence (3b.4-pre, wire-stable per sigil-core).
+// evidence (3b.4-pre, wire-stable per lodeline-core).
 type HostMeta struct {
 	OSName           string         `json:"os_name"`
 	OSVersion        string         `json:"os_version"`
@@ -365,8 +365,8 @@ type RiskPage struct {
 
 // RiskRow is one row of `/v1/fleet/risk.rows` (§5.5).
 //
-// OpenAlertCount24h note: per contract §14.9.4 (D2 / Ju571nK/sigil#21,
-// fixed sigil 8ebfd49 2026-05-28) the producer now counts only the
+// OpenAlertCount24h note: per contract §14.9.4 (D2 / Ju571nK/lodeline#21,
+// fixed lodeline 8ebfd49 2026-05-28) the producer now counts only the
 // alerts-definition evidence kinds (1:1 with /v1/meta via is_alert_evidence),
 // not every warn-severity event. Trust this server count when the local
 // alerts definition equals the default; recompute from /v1/events only when
@@ -393,7 +393,7 @@ type CompliancePage struct {
 }
 
 // ComplianceRow is one row of `/v1/fleet/compliance.rows` (§5.6). Per F13
-// this is raw signals only — sigil-manager derives the status pill from
+// this is raw signals only — lodeline-manager derives the status pill from
 // (VersionDrift, PolicyExpiredActive, SignatureFailures24h).
 type ComplianceRow struct {
 	HostID                     string     `json:"host_id"`
@@ -416,9 +416,9 @@ type EventsPage struct {
 	NextCursor *string `json:"next_cursor"`
 }
 
-// Event is the on-the-wire Event JSON from sigil-core (§5.7). The fleet API
+// Event is the on-the-wire Event JSON from lodeline-core (§5.7). The fleet API
 // does NOT re-shape, redact, or recompose event fields, so this struct
-// mirrors sigil-core's serde-derived shape directly.
+// mirrors lodeline-core's serde-derived shape directly.
 //
 // Subject and Source kinds vary by source — kept raw; callers parse if they
 // care (Plan 02's Alerts queue only needs Evidence).
@@ -437,7 +437,7 @@ type Event struct {
 
 // Evidence carries the discriminator (`Kind`) plus the entire wire object
 // so callers can decode into a variant-specific struct without us
-// enumerating all 25+ Evidence::* variants from sigil-core. Plan 02 only
+// enumerating all 25+ Evidence::* variants from lodeline-core. Plan 02 only
 // renders AiGuardRiskAssessed — use AsAiGuard for that.
 //
 // On the wire: `"evidence": {"kind": "ai_guard_risk_assessed", ...}`.

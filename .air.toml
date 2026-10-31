@@ -2,8 +2,8 @@ root = "."
 tmp_dir = "tmp"
 
 [build]
-cmd = "go build -o ./tmp/sigil-manager ./cmd/sigil-manager"
-bin = "./tmp/sigil-manager"
+cmd = "go build -o ./tmp/lodeline-manager ./cmd/lodeline-manager"
+bin = "./tmp/lodeline-manager"
 include_ext = ["go"]
 exclude_dir = ["tmp", "web", "internal/server/dist"]
 delay = 200

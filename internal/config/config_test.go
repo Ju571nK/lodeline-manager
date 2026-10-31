@@ -44,19 +44,19 @@ func unsetForTest(t *testing.T, key string) error {
 // fullValidEnv returns a complete, valid environment for the non-mock path.
 func fullValidEnv() map[string]string {
 	return map[string]string{
-		"LISTEN_ADDR":                   ":9999",
-		"SIGIL_SERVER_BASE_URL":         "http://localhost:9090",
-		"SIGIL_SERVER_READ_TOKEN":       "secret-token",
-		"MOCK_FLEET":                    "",
-		"TRIAGE_DB_PATH":                "/tmp/test-triage.sqlite",
-		"ADMIN_USERNAME":                "admin",
-		"ADMIN_PASSWORD_BCRYPT":         validBcryptHash,
-		"JWT_SECRET":                    validJWTSecret,
-		"JWT_TTL_HOURS":                 "24",
-		"FLEET_POLL_INTERVAL_SECONDS":   "10",
-		"SIGIL_SERVER_CA_PATH":          "",
-		"SIGIL_SERVER_CLIENT_CERT_PATH": "",
-		"SIGIL_SERVER_CLIENT_KEY_PATH":  "",
+		"LISTEN_ADDR":                      ":9999",
+		"LODELINE_SERVER_BASE_URL":         "http://localhost:9090",
+		"LODELINE_SERVER_READ_TOKEN":       "secret-token",
+		"MOCK_FLEET":                       "",
+		"TRIAGE_DB_PATH":                   "/tmp/test-triage.sqlite",
+		"ADMIN_USERNAME":                   "admin",
+		"ADMIN_PASSWORD_BCRYPT":            validBcryptHash,
+		"JWT_SECRET":                       validJWTSecret,
+		"JWT_TTL_HOURS":                    "24",
+		"FLEET_POLL_INTERVAL_SECONDS":      "10",
+		"LODELINE_SERVER_CA_PATH":          "",
+		"LODELINE_SERVER_CLIENT_CERT_PATH": "",
+		"LODELINE_SERVER_CLIENT_KEY_PATH":  "",
 	}
 }
 
@@ -67,8 +67,8 @@ func TestLoad_ValidFullConfig(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, ":9999", c.ListenAddr)
-	assert.Equal(t, "http://localhost:9090", c.SigilServerBaseURL)
-	assert.Equal(t, "secret-token", c.SigilServerReadToken)
+	assert.Equal(t, "http://localhost:9090", c.LodelineServerBaseURL)
+	assert.Equal(t, "secret-token", c.LodelineServerReadToken)
 	assert.False(t, c.IsMockFleet())
 	assert.Equal(t, "/tmp/test-triage.sqlite", c.TriageDBPath)
 	assert.Equal(t, "admin", c.AdminUsername)
@@ -95,19 +95,19 @@ func TestLoad_DefaultsAppliedWhenOptionalUnset(t *testing.T) {
 	assert.Equal(t, 5*time.Second, c.FleetPollInterval)
 }
 
-func TestLoad_MockFleetRelaxesSigilURLAndToken(t *testing.T) {
+func TestLoad_MockFleetRelaxesLodelineURLAndToken(t *testing.T) {
 	env := fullValidEnv()
 	env["MOCK_FLEET"] = "1"
-	env["SIGIL_SERVER_BASE_URL"] = ""
-	env["SIGIL_SERVER_READ_TOKEN"] = ""
+	env["LODELINE_SERVER_BASE_URL"] = ""
+	env["LODELINE_SERVER_READ_TOKEN"] = ""
 	setEnv(t, env)
 
 	c, err := Load()
 	require.NoError(t, err)
 
 	assert.True(t, c.IsMockFleet())
-	assert.Empty(t, c.SigilServerBaseURL)
-	assert.Empty(t, c.SigilServerReadToken)
+	assert.Empty(t, c.LodelineServerBaseURL)
+	assert.Empty(t, c.LodelineServerReadToken)
 }
 
 func TestLoad_MissingRequired_NonMockMode(t *testing.T) {
@@ -116,8 +116,8 @@ func TestLoad_MissingRequired_NonMockMode(t *testing.T) {
 		unsetKey  string
 		wantInMsg string
 	}{
-		{"sigil URL", "SIGIL_SERVER_BASE_URL", "SIGIL_SERVER_BASE_URL"},
-		{"sigil token", "SIGIL_SERVER_READ_TOKEN", "SIGIL_SERVER_READ_TOKEN"},
+		{"lodeline URL", "LODELINE_SERVER_BASE_URL", "LODELINE_SERVER_BASE_URL"},
+		{"lodeline token", "LODELINE_SERVER_READ_TOKEN", "LODELINE_SERVER_READ_TOKEN"},
 		{"admin username", "ADMIN_USERNAME", "ADMIN_USERNAME"},
 		{"admin password", "ADMIN_PASSWORD_BCRYPT", "ADMIN_PASSWORD_BCRYPT"},
 		{"jwt secret", "JWT_SECRET", "JWT_SECRET"},
@@ -138,11 +138,11 @@ func TestLoad_MissingRequired_NonMockMode(t *testing.T) {
 }
 
 func TestLoad_MissingRequired_MockMode_StillNeedsAuth(t *testing.T) {
-	// Mock mode relaxes sigil URL/token but NOT auth or JWT.
+	// Mock mode relaxes lodeline URL/token but NOT auth or JWT.
 	env := fullValidEnv()
 	env["MOCK_FLEET"] = "1"
-	env["SIGIL_SERVER_BASE_URL"] = ""
-	env["SIGIL_SERVER_READ_TOKEN"] = ""
+	env["LODELINE_SERVER_BASE_URL"] = ""
+	env["LODELINE_SERVER_READ_TOKEN"] = ""
 	env["ADMIN_USERNAME"] = ""
 	setEnv(t, env)
 
@@ -235,7 +235,7 @@ func TestLoad_NegativeFleetPollInterval(t *testing.T) {
 
 func TestLoad_MultipleMissingReportedTogether(t *testing.T) {
 	env := fullValidEnv()
-	env["SIGIL_SERVER_BASE_URL"] = ""
+	env["LODELINE_SERVER_BASE_URL"] = ""
 	env["ADMIN_USERNAME"] = ""
 	env["JWT_SECRET"] = ""
 	setEnv(t, env)
@@ -244,20 +244,20 @@ func TestLoad_MultipleMissingReportedTogether(t *testing.T) {
 	require.Error(t, err)
 	// Should mention all three in a single message, not bail at the first.
 	msg := err.Error()
-	assert.Contains(t, msg, "SIGIL_SERVER_BASE_URL")
+	assert.Contains(t, msg, "LODELINE_SERVER_BASE_URL")
 	assert.Contains(t, msg, "ADMIN_USERNAME")
 	assert.Contains(t, msg, "JWT_SECRET")
 }
 
 func TestLoad_WhitespaceTrimmedFromStrings(t *testing.T) {
 	env := fullValidEnv()
-	env["SIGIL_SERVER_BASE_URL"] = "  http://localhost:9090  "
+	env["LODELINE_SERVER_BASE_URL"] = "  http://localhost:9090  "
 	env["ADMIN_USERNAME"] = "  admin\t"
 	setEnv(t, env)
 
 	c, err := Load()
 	require.NoError(t, err)
-	assert.Equal(t, "http://localhost:9090", c.SigilServerBaseURL)
+	assert.Equal(t, "http://localhost:9090", c.LodelineServerBaseURL)
 	assert.Equal(t, "admin", c.AdminUsername)
 }
 
@@ -286,7 +286,7 @@ func TestLoad_ServerTLSUnsetLeavesDefaultTransport(t *testing.T) {
 	setEnv(t, fullValidEnv())
 	c, err := Load()
 	require.NoError(t, err)
-	assert.Nil(t, c.SigilServerTLS)
+	assert.Nil(t, c.LodelineServerTLS)
 }
 
 func TestLoad_ServerTLSErrors(t *testing.T) {
@@ -299,29 +299,29 @@ func TestLoad_ServerTLSErrors(t *testing.T) {
 		want string
 	}{
 		"cert without key": {
-			map[string]string{"SIGIL_SERVER_CLIENT_CERT_PATH": notPEM},
+			map[string]string{"LODELINE_SERVER_CLIENT_CERT_PATH": notPEM},
 			"must be set together",
 		},
 		"key without cert": {
-			map[string]string{"SIGIL_SERVER_CLIENT_KEY_PATH": notPEM},
+			map[string]string{"LODELINE_SERVER_CLIENT_KEY_PATH": notPEM},
 			"must be set together",
 		},
 		"missing CA file": {
-			map[string]string{"SIGIL_SERVER_CA_PATH": filepath.Join(dir, "absent.crt")},
-			"SIGIL_SERVER_CA_PATH",
+			map[string]string{"LODELINE_SERVER_CA_PATH": filepath.Join(dir, "absent.crt")},
+			"LODELINE_SERVER_CA_PATH",
 		},
 		"CA file without a certificate": {
-			map[string]string{"SIGIL_SERVER_CA_PATH": notPEM},
+			map[string]string{"LODELINE_SERVER_CA_PATH": notPEM},
 			"no PEM certificate",
 		},
 		"unreadable key pair": {
-			map[string]string{"SIGIL_SERVER_CLIENT_CERT_PATH": notPEM, "SIGIL_SERVER_CLIENT_KEY_PATH": notPEM},
-			"SIGIL_SERVER_CLIENT_CERT_PATH",
+			map[string]string{"LODELINE_SERVER_CLIENT_CERT_PATH": notPEM, "LODELINE_SERVER_CLIENT_KEY_PATH": notPEM},
+			"LODELINE_SERVER_CLIENT_CERT_PATH",
 		},
 	} {
 		t.Run(name, func(t *testing.T) {
 			env := fullValidEnv()
-			env["SIGIL_SERVER_BASE_URL"] = "https://sigil.example:8443"
+			env["LODELINE_SERVER_BASE_URL"] = "https://lodeline.example:8443"
 			for k, v := range tc.env {
 				env[k] = v
 			}
@@ -338,29 +338,29 @@ func TestLoad_ServerTLSNeedsHTTPS(t *testing.T) {
 	ca := filepath.Join(dir, "ca.crt")
 	require.NoError(t, os.WriteFile(ca, []byte(testCAPEM), 0o600))
 	env := fullValidEnv()
-	env["SIGIL_SERVER_CA_PATH"] = ca
+	env["LODELINE_SERVER_CA_PATH"] = ca
 	setEnv(t, env)
 	_, err := Load()
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "https://")
 
-	env["SIGIL_SERVER_BASE_URL"] = "HTTPS://sigil.example:8443"
+	env["LODELINE_SERVER_BASE_URL"] = "HTTPS://lodeline.example:8443"
 	setEnv(t, env)
 	c, err := Load()
 	require.NoError(t, err)
-	require.NotNil(t, c.SigilServerTLS)
-	assert.NotNil(t, c.SigilServerTLS.RootCAs)
+	require.NotNil(t, c.LodelineServerTLS)
+	assert.NotNil(t, c.LodelineServerTLS.RootCAs)
 }
 
 func TestLoad_MockFleetIgnoresServerTLS(t *testing.T) {
 	env := fullValidEnv()
 	env["MOCK_FLEET"] = "1"
-	env["SIGIL_SERVER_BASE_URL"] = ""
-	env["SIGIL_SERVER_CA_PATH"] = filepath.Join(t.TempDir(), "absent.crt")
+	env["LODELINE_SERVER_BASE_URL"] = ""
+	env["LODELINE_SERVER_CA_PATH"] = filepath.Join(t.TempDir(), "absent.crt")
 	setEnv(t, env)
 	c, err := Load()
 	require.NoError(t, err)
-	assert.Nil(t, c.SigilServerTLS)
+	assert.Nil(t, c.LodelineServerTLS)
 }
 
 // testCAPEM is a throwaway self-signed certificate; only its PEM shape matters.
@@ -375,3 +375,9 @@ QxY1BNHTcGHgwp5imTTHlf75AOKJjQkN0QIgJel6p0vI44UHLKFaJhBtMZ7D39mS
 UU27/7V3jmgz164=
 -----END CERTIFICATE-----
 `
+
+func TestLegacyEnvNames_ReportsNamesNotValues(t *testing.T) {
+	got := LegacyEnvNames([]string{"SIGIL_INSECURE_COOKIE=hunter2-secret", "LODELINE_X=1", "NOT_SIGIL_Y=2"})
+	assert.Equal(t, []string{"SIGIL_INSECURE_COOKIE"}, got)
+	assert.NotContains(t, strings.Join(got, " "), "hunter2-secret")
+}

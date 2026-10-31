@@ -21,7 +21,7 @@ function SettingsPage() {
   return (
     <div className="flex max-w-[720px] flex-col py-4">
       <h1 className="mb-4 text-lg font-semibold text-text-primary">Settings</h1>
-      <Section title="sigil-server">
+      <Section title="lodeline-server">
         <Row label="Liveness">
           {health.isError
             ? 'Unreachable'

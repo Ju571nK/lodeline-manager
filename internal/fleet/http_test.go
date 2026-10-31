@@ -112,7 +112,7 @@ func TestHTTP_Meta_FleetBlock(t *testing.T) {
 	assert.Equal(t, ActiveHosts{ActiveHostCount: 42, ActiveWindowDays: 7}, *out.Fleet)
 }
 
-// sigil-server 0.8.x reports the host count inside `license`.
+// lodeline-server 0.8.x reports the host count inside `license`.
 func TestHTTP_Meta_LegacyLicenseBlockMapsToFleet(t *testing.T) {
 	c, _ := stubServer(t, func(w http.ResponseWriter, _ *http.Request) {
 		writeJSON(w, 200, metaBody(map[string]any{
@@ -173,7 +173,7 @@ func TestHTTP_EventsQueryParams(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "abc", got.Query.Get("cursor"))
 	assert.Equal(t, "200", got.Query.Get("limit"))
-	// Comma-separated single value, not repeatable: sigil-server #75 switched
+	// Comma-separated single value, not repeatable: lodeline-server #75 switched
 	// host_id from a Vec to an Option<String> it comma-splits, like the other
 	// multi-value filters. A repeatable ?host_id=a&host_id=b no longer filters
 	// on both hosts.

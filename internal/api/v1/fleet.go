@@ -11,13 +11,13 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
-	"github.com/Ju571nK/sigil-manager/internal/fleet"
-	"github.com/Ju571nK/sigil-manager/internal/httputil"
-	"github.com/Ju571nK/sigil-manager/internal/triage"
+	"github.com/Ju571nK/lodeline-manager/internal/fleet"
+	"github.com/Ju571nK/lodeline-manager/internal/httputil"
+	"github.com/Ju571nK/lodeline-manager/internal/triage"
 )
 
 // handleFleetMeta is a thin pass-through to FleetClient.Meta. Errors map
-// to consumer-side codes; the SPA never sees `sigil-server` URLs.
+// to consumer-side codes; the SPA never sees `lodeline-server` URLs.
 func (s *Server) handleFleetMeta(w http.ResponseWriter, r *http.Request) {
 	out, err := s.Fleet.Meta(r.Context())
 	if err != nil {
@@ -295,25 +295,25 @@ func mapFleetErr(w http.ResponseWriter, err error) {
 		writeError(w, http.StatusNotFound, "not_found", "event or host not found")
 	case errors.Is(err, fleet.ErrReadAPIDisabled):
 		writeError(w, http.StatusBadGateway, "read_api_disabled",
-			"sigil-server has the read API disabled — set SIGIL_SERVER_READ_TOKEN there")
+			"lodeline-server has the read API disabled — set LODELINE_SERVER_READ_TOKEN there")
 	case errors.Is(err, fleet.ErrUnauthorized):
 		writeError(w, http.StatusBadGateway, "upstream_unauthorized",
-			"sigil-server rejected our token — check SIGIL_SERVER_READ_TOKEN")
+			"lodeline-server rejected our token — check LODELINE_SERVER_READ_TOKEN")
 	case errors.Is(err, fleet.ErrServiceUnavailable):
 		writeError(w, http.StatusServiceUnavailable, "service_unavailable",
-			"sigil-server is rebuilding its index, retry shortly")
+			"lodeline-server is rebuilding its index, retry shortly")
 	default:
 		// Log the detailed error server-side for operators, but never relay it
 		// to the SPA: a transport error wraps a *url.Error carrying the full
-		// sigil-server URL, and the APIError fallback can hold the raw upstream
-		// body. Keep the invariant that the SPA never sees sigil-server URLs.
+		// lodeline-server URL, and the APIError fallback can hold the raw upstream
+		// body. Keep the invariant that the SPA never sees lodeline-server URLs.
 		log.Printf("fleet: upstream request failed: %v", err)
 		var apiErr *fleet.APIError
 		if errors.As(err, &apiErr) {
 			writeError(w, http.StatusBadGateway, "upstream_error",
-				"sigil-server returned an error ("+apiErr.Code+")")
+				"lodeline-server returned an error ("+apiErr.Code+")")
 			return
 		}
-		writeError(w, http.StatusBadGateway, "upstream_error", "request to sigil-server failed")
+		writeError(w, http.StatusBadGateway, "upstream_error", "request to lodeline-server failed")
 	}
 }

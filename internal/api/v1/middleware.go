@@ -1,6 +1,6 @@
-// Package v1 implements sigil-manager's `/api/v1/*` HTTP surface — the SPA's
+// Package v1 implements lodeline-manager's `/api/v1/*` HTTP surface — the SPA's
 // only consumer-side API. It composes [fleet.Client], [triage.Repo], and
-// [auth.Signer]; nothing here is publicly reachable on `sigil-server`.
+// [auth.Signer]; nothing here is publicly reachable on `lodeline-server`.
 package v1
 
 import (
@@ -8,12 +8,12 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/Ju571nK/sigil-manager/internal/auth"
-	"github.com/Ju571nK/sigil-manager/internal/httputil"
+	"github.com/Ju571nK/lodeline-manager/internal/auth"
+	"github.com/Ju571nK/lodeline-manager/internal/httputil"
 )
 
 // CookieName is the HTTP-only session cookie holding the signed JWT.
-const CookieName = "sigil_session"
+const CookieName = "lodeline_session"
 
 // ctxKey is the unexported key under which RequireAuth stuffs the subject
 // (admin username) into request context. Handlers retrieve it via [Subject].
@@ -27,7 +27,7 @@ func Subject(ctx context.Context) string {
 	return s
 }
 
-// errorBody mirrors the contract §6.1 wire shape so SPA + sigil-server errors
+// errorBody mirrors the contract §6.1 wire shape so SPA + lodeline-server errors
 // look the same to the frontend.
 type errorBody struct {
 	Error errorPayload `json:"error"`

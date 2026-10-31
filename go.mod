@@ -1,4 +1,4 @@
-module github.com/Ju571nK/sigil-manager
+module github.com/Ju571nK/lodeline-manager
 
 go 1.25.0
 

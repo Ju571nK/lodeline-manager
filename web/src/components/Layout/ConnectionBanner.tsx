@@ -5,7 +5,7 @@ import { fleetHealthz } from '@/api/fleet';
 import { cn } from '@/lib/utils';
 
 /**
- * Sticky banner under the TopNav that surfaces when sigil-server is
+ * Sticky banner under the TopNav that surfaces when lodeline-server is
  * unreachable (UI/UX §8.3). The TopNav already shows a small connection
  * pill; this banner is the louder escalation:
  *   - Disconnected (network / 5xx / unknown): red banner with manual retry.
@@ -32,8 +32,8 @@ export function ConnectionBanner() {
     ? 'border-status-degraded/40 bg-status-degraded/10 text-status-degraded'
     : 'border-sev-critical/40 bg-sev-critical/10 text-sev-critical';
   const message = isServiceUnavailable
-    ? 'sigil-server is rebuilding its index. Retrying every 10s…'
-    : 'Lost connection to sigil-server. Retrying every 10s…';
+    ? 'lodeline-server is rebuilding its index. Retrying every 10s…'
+    : 'Lost connection to lodeline-server. Retrying every 10s…';
 
   return (
     <div className={cn('border-b px-6 py-2 text-xs', tone)}>

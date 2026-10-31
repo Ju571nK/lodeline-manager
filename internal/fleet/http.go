@@ -13,7 +13,7 @@ import (
 	"time"
 )
 
-// HTTPClient implements [Client] against a real sigil-server `/v1/*` API
+// HTTPClient implements [Client] against a real lodeline-server `/v1/*` API
 // (contract v1.0). Construct with [NewHTTPClient]; safe for concurrent use.
 type HTTPClient struct {
 	baseURL    string
@@ -21,7 +21,7 @@ type HTTPClient struct {
 	httpClient *http.Client
 }
 
-// NewHTTPClient builds an HTTPClient pointing at sigil-server. baseURL must
+// NewHTTPClient builds an HTTPClient pointing at lodeline-server. baseURL must
 // have no trailing slash (e.g. "http://localhost:9090"). token is the shared
 // bearer per contract F2 / §3.1. timeout=0 falls back to 5s.
 func NewHTTPClient(baseURL, token string, timeout time.Duration) *HTTPClient {
@@ -53,7 +53,7 @@ func (c *HTTPClient) Meta(ctx context.Context) (*Meta, error) {
 	return w.toMeta(), nil
 }
 
-// metaWire is the `/v1/meta` body as received. sigil-server 0.8.x and
+// metaWire is the `/v1/meta` body as received. lodeline-server 0.8.x and
 // earlier have no `fleet` object but report the same two numbers inside
 // `license`; v0.9.0 removed `license` (contract §14.13). The rest of that
 // object is not used by the console and is dropped.
@@ -174,7 +174,7 @@ func doJSON[T any](ctx context.Context, c *HTTPClient, method, path string, quer
 
 // parseRetryAfter parses the `Retry-After` header in its delta-seconds form
 // (contract §6.1 F15 + RFC 7231 §7.1.3). Falls back to 5s when the header is
-// missing or unparseable — matches sigil-server's documented default.
+// missing or unparseable — matches lodeline-server's documented default.
 func parseRetryAfter(v string) time.Duration {
 	if v == "" {
 		return 5 * time.Second
@@ -218,7 +218,7 @@ func buildEventsQuery(p EventsParams) url.Values {
 		q.Set("limit", strconv.Itoa(p.Limit))
 	}
 	if len(p.HostIDs) > 0 {
-		// Comma-separated, not repeatable: sigil-server (#75) deserializes
+		// Comma-separated, not repeatable: lodeline-server (#75) deserializes
 		// host_id as a single Option<String> it comma-splits, matching the
 		// other multi-value filters below.
 		q.Set("host_id", strings.Join(p.HostIDs, ","))

@@ -17,7 +17,7 @@ export interface HealthzResponse {
 
 /**
  * Active-host count on `/v1/meta` (contract §14.13). The Go layer also fills
- * this in for sigil-server 0.8.x, which reports the same numbers elsewhere;
+ * this in for lodeline-server 0.8.x, which reports the same numbers elsewhere;
  * it is absent only when the server reports neither.
  */
 export interface FleetSummary {
@@ -142,14 +142,14 @@ export interface ReasonLike {
 }
 
 // -----------------------------------------------------------------------------
-// sigil-hook evidence (contract §14.9.2)
+// lodeline-hook evidence (contract §14.9.2)
 // -----------------------------------------------------------------------------
 // Four kinds emitted at the agent tool boundary. All carry `agent` (an AiTool
 // wire string) and `peer_uid`; only hook_invocation carries `other_label` (the
 // operator label for an `agent === "other"` match). Optional (`?`) fields are
 // `Option` on the wire and arrive absent/null.
 
-/** A runtime tool invocation observed by sigil-hook. */
+/** A runtime tool invocation observed by lodeline-hook. */
 export interface HookInvocationEvidence extends Evidence {
   kind: 'hook_invocation';
   agent: string;
@@ -164,7 +164,7 @@ export interface HookInvocationEvidence extends Evidence {
   capture_status: string;
 }
 
-/** An allow/deny decision sigil-hook made at the tool boundary. */
+/** An allow/deny decision lodeline-hook made at the tool boundary. */
 export interface HookDecisionEvidence extends Evidence {
   kind: 'hook_decision';
   agent: string;
@@ -181,7 +181,7 @@ export interface HookDecisionEvidence extends Evidence {
   capture_level: string;
 }
 
-/** The agent's on-disk hook config drifted from what sigil installed. */
+/** The agent's on-disk hook config drifted from what lodeline installed. */
 export interface HookConfigDriftEvidence extends Evidence {
   kind: 'hook_config_drift';
   agent: string;
@@ -209,7 +209,7 @@ export interface PossibleHookActivitySilentEvidence extends Evidence {
   confidence: 'low' | 'medium' | 'high' | string;
 }
 
-/** Union of the four sigil-hook evidence variants. */
+/** Union of the four lodeline-hook evidence variants. */
 export type HookEvidence =
   | HookInvocationEvidence
   | HookDecisionEvidence
@@ -303,7 +303,7 @@ export interface RiskRow {
   reasons_count: number;
   assessed_ts: string;
   /**
-   * Trailing-24h alert count. Per contract §14.9.4 (issue #21, sigil 8ebfd49)
+   * Trailing-24h alert count. Per contract §14.9.4 (issue #21, lodeline 8ebfd49)
    * the producer now filters this to the alerts-definition evidence kinds
    * (1:1 with /v1/meta) — it genuinely means "alerts in 24h". Recompute
    * client-side only if the operator overrides alerts_definition_default.
