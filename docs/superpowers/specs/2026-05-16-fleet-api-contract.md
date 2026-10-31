@@ -1,31 +1,31 @@
-# sigil-server Fleet Read API — Consumer Contract
+# lodeline-server Fleet Read API — Consumer Contract
 
-- **Status:** **v1.0 — aligned with sigil producer spec 2026-05-17.** Producer has
+- **Status:** **v1.0 — aligned with lodeline producer spec 2026-05-17.** Producer has
   locked its own design (decisions A–I) and resolved all seven §10 open questions
   from the prior Draft v0. This doc now reflects the producer-side decisions
-  verbatim; the consumer side (`sigil-manager`) implements against this.
+  verbatim; the consumer side (`lodeline-manager`) implements against this.
 - **Date:** 2026-05-16 (draft v0) · 2026-05-17 (aligned to v1.0)
 - **Owner:** Justin Kwon
-- **Repo of record:** `Ju571nK/sigil-manager` (consumer).
+- **Repo of record:** `Ju571nK/lodeline-manager` (consumer).
 - **Cross-links:**
   - Consumer needs: `docs/superpowers/specs/2026-05-16-ui-ux-design.md`
-  - **Producer spec (locked):** `Ju571nK/sigil` →
+  - **Producer spec (locked):** `Ju571nK/lodeline` →
     `docs/superpowers/specs/2026-05-17-phase-3b4-fleet-aggregation-api-design.html`
-  - **Producer plan:** `Ju571nK/sigil` →
+  - **Producer plan:** `Ju571nK/lodeline` →
     `docs/superpowers/plans/2026-05-17-phase-3b4-fleet-aggregation-api.html`
-  - Producer evidence schema: `Ju571nK/sigil` → `crates/sigil-core/src/event.rs`
+  - Producer evidence schema: `Ju571nK/lodeline` → `crates/lodeline-core/src/event.rs`
     (now includes `HostMetaSnapshot` shipped 2026-05-17 / merge `b34dbdd`)
-  - Producer existing + new routes: `Ju571nK/sigil` →
-    `crates/sigil-server/src/app.rs` (Phase 3b.4 in flight, issue **#18**, sub of #9)
-  - Sigil epic: `Ju571nK/sigil` issue #9 (Phase 3b)
-- **Producer lock target:** `sigil-server 0.5.0` (the release that ships 3b.4).
-  When that release lands, change status to *"locked against sigil-server 0.5.0"*.
+  - Producer existing + new routes: `Ju571nK/lodeline` →
+    `crates/lodeline-server/src/app.rs` (Phase 3b.4 in flight, issue **#18**, sub of #9)
+  - Lodeline epic: `Ju571nK/lodeline` issue #9 (Phase 3b)
+- **Producer lock target:** `lodeline-server 0.5.0` (the release that ships 3b.4).
+  When that release lands, change status to *"locked against lodeline-server 0.5.0"*.
 
 ---
 
 ## 1. Why this doc exists
 
-`sigil-manager` is the read-side consumer of `sigil-server`. Until Phase 3b.4,
+`lodeline-manager` is the read-side consumer of `lodeline-server`. Until Phase 3b.4,
 the server exposed only two endpoints (`POST /v1/events` for agent ingest,
 `GET /v1/policy` for agent policy fetch). Phase 3b.4 adds the read API.
 
@@ -33,41 +33,41 @@ This contract was originally drafted consumer-first (Draft v0, 2026-05-16) and
 handed to producer as input. Producer then ran its own spec round and locked
 9 decisions (A–I) plus answers to all 7 of our open questions on 2026-05-17.
 **This v1.0 reflects those locked producer decisions verbatim.** Any
-disagreement is now a follow-up issue against `Ju571nK/sigil`, not a unilateral
+disagreement is now a follow-up issue against `Ju571nK/lodeline`, not a unilateral
 consumer-side override.
 
 The doc still serves the consumer: it lists screens (`/alerts`, `/fleet/*`,
 `/hosts/:hostname`) and traces them to the endpoints and fields the UI requires
-(§9). When the producer's `sigil-server 0.5.0` ships, this doc is the
-implementation contract for `sigil-manager`'s `FleetClient`.
+(§9). When the producer's `lodeline-server 0.5.0` ships, this doc is the
+implementation contract for `lodeline-manager`'s `FleetClient`.
 
 **Not in scope of this contract:** triage state. Per UI/UX D5 and producer
-Out-of-scope §8, ack/assign/resolve/notes live in `sigil-manager`'s own DB.
+Out-of-scope §8, ack/assign/resolve/notes live in `lodeline-manager`'s own DB.
 Producer recommends a `(host_id, event_id)` join key on the consumer side
 since `event_id` alone can orphan if an event is rejected as
-`EventUnprocessableLocal`; that's a sigil-manager Plan 02 detail, not this
+`EventUnprocessableLocal`; that's a lodeline-manager Plan 02 detail, not this
 contract.
 
 ---
 
 ## 2. Locked decisions
 
-Producer's locked decisions A–I (sigil 3b.4 spec §1) are reflected here as
+Producer's locked decisions A–I (lodeline 3b.4 spec §1) are reflected here as
 F-numbered consumer entries. The mapping column traces each row to the
 producer-side decision letter so the lineage is auditable.
 
 | # | Decision | Choice | Producer ref |
 |---|---|---|---|
 | F1  | Transport | HTTP/1.1 + JSON (same as existing `/v1/*`). gRPC rejected. | — (implicit) |
-| F2  | Auth (read side) | **Bearer token from env var.** Server reads `SIGIL_SERVER_READ_TOKEN`; consumer sends `Authorization: Bearer <token>`. Constant-time compare. Single shared token. **Unset env ⇒ all read endpoints (except `/v1/healthz`) return `404 not_found`** — read API existence is hidden. | **C** |
+| F2  | Auth (read side) | **Bearer token from env var.** Server reads `LODELINE_SERVER_READ_TOKEN`; consumer sends `Authorization: Bearer <token>`. Constant-time compare. Single shared token. **Unset env ⇒ all read endpoints (except `/v1/healthz`) return `404 not_found`** — read API existence is hidden. | **C** |
 | F3  | URL prefix | Flat `/v1/...`. No `/read/` subtree. | **D** |
 | F4  | Ordering | Events: `ts desc` always (no `asc` in v1). Hosts: sortable via `sort=last_seen\|risk\|host_id`, default `last_seen`. | (producer §4.3, §4.7) |
 | F5  | Pagination | **Cursor = opaque string carrying the last `event_id` (UUIDv7)** for `/v1/events`; for fleet endpoints, last `host_id` string. UUIDv7's lexicographic ordering = chronological. `limit` default 100, max 1000. `limit>1000` silently capped (see open issue note in §6.1). | **G** |
 | F6  | Time format | RFC 3339 strings everywhere. Events carry `ts` from agent's clock; server does **not** add a `server_received_ts` in v1 (see §13 gap). | (producer §4) |
 | F7  | Score scale | **0.0–10.0** float (CVSS-style, matches `AiGuardRiskAssessed.score`). **Locked — UI/UX spec §5.2 to be updated** from "0-100" to "0-10". | producer §9 Q1 |
-| F8  | Streaming | Polling only in v1 (UI/UX §7.2 = 5s). SSE/WebSocket deferred (producer Out-of-scope §8 → 3b.4.1 or sigil-cloud). | producer §8 |
+| F8  | Streaming | Polling only in v1 (UI/UX §7.2 = 5s). SSE/WebSocket deferred (producer Out-of-scope §8 → 3b.4.1 or lodeline-cloud). | producer §8 |
 | F9  | Versioning | Path version (`/v1/`). Additive non-breaking (new fields, new endpoints, new evidence variants). Breaking → `/v2/`, both run ≥1 minor cycle. | (producer §7.3) |
-| F10 | "Alerts" definition | Server has no first-class alert concept, but **`/v1/meta.alerts_definition_default` exports the producer's recommended set** so consumer + server agree on the default. Consumer may override client-side. **RESOLVED (sigil `8ebfd49`, #21, 2026-05-28):** `open_alert_count_24h` in `/v1/fleet/risk` now counts only the `alerts_definition_default` evidence kinds (1:1 via the `is_alert_evidence` helper), not every warn-severity event. The earlier `0dce160` divergence is closed — see §14.9.4. | producer §4.2 / §4.5 |
+| F10 | "Alerts" definition | Server has no first-class alert concept, but **`/v1/meta.alerts_definition_default` exports the producer's recommended set** so consumer + server agree on the default. Consumer may override client-side. **RESOLVED (lodeline `8ebfd49`, #21, 2026-05-28):** `open_alert_count_24h` in `/v1/fleet/risk` now counts only the `alerts_definition_default` evidence kinds (1:1 via the `is_alert_evidence` helper), not every warn-severity event. The earlier `0dce160` divergence is closed — see §14.9.4. | producer §4.2 / §4.5 |
 | F11 | Server-side index backing | **In-memory per-host `HostSummary` HashMap** (`parking_lot::RwLock`). Rebuilt from JSONL on server boot. `/v1/events` filters do an **on-demand reverse JSONL scan** (no event-level index in v1). MVP target: ≤1000 hosts × 7 days × 30k events/day. | **B**, **F** |
 | F12 | Index update timing | **Synchronous.** `POST /v1/events` ingest handler updates `HostSummary` inline before responding. No async indexer task in v1. | **H** |
 | F13 | Compliance representation | `/v1/fleet/compliance` exposes **raw signals only**: `last_applied_policy_version`, `server_current_policy_version`, `version_drift`, `policy_expired_active`, `last_policy_reload_ts`, `signature_failures_24h`. **No `compliance_score`** — the UI derives status from raw signals. | **I**, producer §9 Q2 |
@@ -80,7 +80,7 @@ producer-side decision letter so the lineage is auditable.
 
 ### 3.1 Token
 
-- Server env var: `SIGIL_SERVER_READ_TOKEN` (required to enable read endpoints).
+- Server env var: `LODELINE_SERVER_READ_TOKEN` (required to enable read endpoints).
 - Header: `Authorization: Bearer <token>`. Server uses **constant-time
   comparison** to dodge timing side channels.
 - **Unset env** → all read endpoints (except `/v1/healthz`) return
@@ -92,23 +92,23 @@ producer-side decision letter so the lineage is auditable.
 
 ### 3.2 Token rotation
 
-**Restart-only rotation in v1.** Changing `SIGIL_SERVER_READ_TOKEN` requires
-restarting `sigil-server`. There is no graceful reload, no dual-token overlap
+**Restart-only rotation in v1.** Changing `LODELINE_SERVER_READ_TOKEN` requires
+restarting `lodeline-server`. There is no graceful reload, no dual-token overlap
 window. Operators rotating tokens must accept a brief read-API outage during
 restart (agents continue to ingest via `POST /v1/events` over mTLS — that path
 is unaffected).
 
-`sigil-manager`'s `FleetClient` should treat any `401` as a hard
+`lodeline-manager`'s `FleetClient` should treat any `401` as a hard
 configuration error and surface it to the operator (Settings page banner),
 not retry silently.
 
 ### 3.3 Threat model note
 
 The token is a shared secret intended for **operator-deployed, self-hosted**
-topologies where `sigil-manager` and `sigil-server` are typically on the same
+topologies where `lodeline-manager` and `lodeline-server` are typically on the same
 network. For broader threat models (untrusted network paths, multiple
-consumers), operators are expected to put `sigil-server` behind their own
-reverse proxy + TLS. Strengthening this is `sigil-cloud`'s problem (not in this
+consumers), operators are expected to put `lodeline-server` behind their own
+reverse proxy + TLS. Strengthening this is `lodeline-cloud`'s problem (not in this
 repo per `CLAUDE.md`).
 
 ### 3.4 Why 404-not-401 when env is unset
@@ -117,7 +117,7 @@ The producer chose to hide read-API existence entirely when not configured
 (rather than 401-ing with a "read API disabled" message). Trade-off:
 - **Pro:** scanners can't trivially detect that this server has a read API.
 - **Con:** operators may waste time debugging "404 — wrong URL?" vs.
-  "404 — env var unset". `sigil-manager`'s setup flow must check the operator
+  "404 — env var unset". `lodeline-manager`'s setup flow must check the operator
   set the env var on the server side; a `404` on `/v1/meta` after correct
   base URL is a strong hint the token is unset.
 
@@ -193,12 +193,12 @@ returns non-200.
 }
 ```
 
-`audit_head` is an additive top-level field shipped post-lock (sigil
+`audit_head` is an additive top-level field shipped post-lock (lodeline
 `2b5d61c`); see §14.9.3. `fleet` replaced the earlier `license` field in
-sigil v0.9.0; see §14.13. Neither bumps `schema_version`.
+lodeline v0.9.0; see §14.13. Neither bumps `schema_version`.
 
 `alerts_definition_default` is the **producer's recommended set**. The
-consumer (`sigil-manager`) starts from this and may add/remove kinds in
+consumer (`lodeline-manager`) starts from this and may add/remove kinds in
 client-side configuration. Two consequences flow from F10:
 - `open_alert_count_24h` (in `/v1/fleet/risk` rows) is server-computed
   against this recommendation. If the consumer overrides, it recomputes from
@@ -344,7 +344,7 @@ may be `null` if the host hasn't emitted the relevant evidence yet):
 
 Notes:
 - **`host_meta`** is the latest `Evidence::HostMetaSnapshot` payload verbatim
-  (3b.4-pre wire-stable types from `sigil-core`). Producer overwrites on each
+  (3b.4-pre wire-stable types from `lodeline-core`). Producer overwrites on each
   `is_reattestation: false` snapshot.
 - `policy_state.signature_failures_24h` from the original draft was removed
   and replaced with a top-level `signature_failures_24h` in
@@ -389,14 +389,14 @@ breakdown is in `/v1/fleet/hosts/{host_id}.ai_guard.by_tool`.
 
 - `hostname: null` allowed (see §5.3).
 - `open_alert_count_24h` — **producer spec §4.5 says this is the count
-  matching `alerts_definition_default`. As of sigil-server commit `0dce160`
+  matching `alerts_definition_default`. As of lodeline-server commit `0dce160`
   (2026-05-17), the actual implementation returns
   `h.counts_24h.sum_warn()` — i.e., every `severity=warn` event in the
   trailing 24h, regardless of whether it matches the alerts definition.**
   Consumer should treat the field as a coarse "warn events in 24h"
   indicator and recompute precise alert counts client-side from
   `/v1/events` if the UI needs a tighter number. Tracked as a follow-up on
-  `Ju571nK/sigil` (see §13.1).
+  `Ju571nK/lodeline` (see §13.1).
 - Hosts with no `AiGuardRiskAssessed` yet are omitted entirely (not returned
   with `null` score).
 
@@ -428,7 +428,7 @@ raw fields client-side.
 }
 ```
 
-**UI derivation rule** (sigil-manager Plan 02 will implement):
+**UI derivation rule** (lodeline-manager Plan 02 will implement):
 - `In sync` ✅ when `version_drift == 0 AND !policy_expired_active AND
   signature_failures_24h == 0`
 - `Expired` ❌ when `policy_expired_active`
@@ -436,7 +436,7 @@ raw fields client-side.
 - `Drift` ⚠️ when `version_drift > 0` (and not in above states)
 
 If the producer needs to refine the rule, the **rule lives in
-`sigil-manager`** (not in the server). Producer never exposes a numeric
+`lodeline-manager`** (not in the server). Producer never exposes a numeric
 score.
 
 ### 5.7 `GET /v1/events`
@@ -509,7 +509,7 @@ page request.
 }
 ```
 
-Each item is the **untouched on-the-wire `Event` JSON** from `sigil-core`.
+Each item is the **untouched on-the-wire `Event` JSON** from `lodeline-core`.
 The fleet API does not re-shape, redact, or recompose event fields. Consumers
 trust the producer schema and tolerate additive evolution (new
 `Evidence::*` variants, new optional fields).
@@ -532,7 +532,7 @@ the UUIDv7 timestamp embed is the index.
 Response: the same shape as one element of `5.7.events`.
 
 This is the alert slide-over's primary fetch. The consumer's triage row
-(stored locally in `sigil-manager`'s DB) should key on
+(stored locally in `lodeline-manager`'s DB) should key on
 `(host_id, event_id)` — not `event_id` alone — to avoid orphans if an
 event is later rejected via `EventUnprocessableLocal` or replayed.
 
@@ -573,7 +573,7 @@ All errors:
 |---|---|---|
 | `400` | `invalid_query` | Bad cursor (unparseable UUID for `/v1/events`), unknown filter value, malformed timestamp. |
 | `401` | `unauthorized` | Missing/wrong bearer (env var IS set). |
-| `404` | `not_found` | `{host_id}`/`{event_id}` not in set; OR read endpoints when `SIGIL_SERVER_READ_TOKEN` is unset (read API hidden). |
+| `404` | `not_found` | `{host_id}`/`{event_id}` not in set; OR read endpoints when `LODELINE_SERVER_READ_TOKEN` is unset (read API hidden). |
 | `429` | `rate_limited` | Reserved; not enforced in v1. |
 | `503` | `service_unavailable` | Boot rebuild in progress (per F15). Response includes `Retry-After: 5` header. |
 | `500` | `internal` | Producer bug. |
@@ -583,7 +583,7 @@ All errors:
 Producer **silently clamps `limit` to `[1, 1000]`** in both directions:
 `limit=0`, negative values, and `limit>1000` are all coerced — no `400`
 returned. Implementation: `clamp(1, 1000)` in every route's
-query-parser. `sigil-manager`'s `FleetClient` should always send a value
+query-parser. `lodeline-manager`'s `FleetClient` should always send a value
 inside the range so client and server agree on the page size. A
 `limit=5000` request that returns 1000 rows is otherwise indistinguishable
 from a genuine 1000-row page; similarly `limit=0` returning a non-empty
@@ -619,8 +619,8 @@ page is silently rounded up to 1.
 ## 8. Versioning & schema evolution
 
 - Adding new optional response fields is non-breaking.
-- Adding new `Evidence` variants is non-breaking (already wire-stable per sigil
-  spec §3.3). `sigil-manager` must tolerate unknown `evidence.kind`.
+- Adding new `Evidence` variants is non-breaking (already wire-stable per lodeline
+  spec §3.3). `lodeline-manager` must tolerate unknown `evidence.kind`.
 - Adding new endpoints under `/v1/` is non-breaking.
 - Removing fields, renaming fields, changing types, removing endpoints →
   bump to `/v2/` and run both for at least one minor release cycle.
@@ -635,11 +635,11 @@ been bumped.
 | UI surface | Endpoint(s) called |
 |---|---|
 | `/alerts` queue | `/v1/events?evidence_kind=ai_guard_risk_assessed&min_ai_guard_bucket=high&since=...` plus the additional kinds from `meta.alerts_definition_default`. Polled every 5s (UI/UX §7.2). |
-| Alert slide-over | `/v1/events/{event_id}` for the body. Triage state read/written to local sigil-manager DB. |
+| Alert slide-over | `/v1/events/{event_id}` for the body. Triage state read/written to local lodeline-manager DB. |
 | `/fleet/risk` (default tab) | `/v1/fleet/risk?limit=100`. Click row → `/hosts/:hostname`. |
 | `/fleet/events` | `/v1/events` with current filters. |
 | `/fleet/compliance` | `/v1/fleet/compliance`. |
-| `/hosts/:hostname` header + metadata | `/v1/fleet/hosts/{host_id}`. **Note**: the URL uses `:hostname` for human readability; `sigil-manager` resolves hostname → `host_id` via a local cache populated from `/v1/fleet/hosts` (hostname comes from latest HostMetaSnapshot). When the cache is cold the URL falls back to showing `host_id` until the cache fills. |
+| `/hosts/:hostname` header + metadata | `/v1/fleet/hosts/{host_id}`. **Note**: the URL uses `:hostname` for human readability; `lodeline-manager` resolves hostname → `host_id` via a local cache populated from `/v1/fleet/hosts` (hostname comes from latest HostMetaSnapshot). When the cache is cold the URL falls back to showing `host_id` until the cache fills. |
 | `/hosts/:hostname` Alerts tab | `/v1/events?host_id={host_id}&evidence_kind=...&...` |
 | `/hosts/:hostname` Events tab | `/v1/events?host_id={host_id}` |
 | `/hosts/:hostname` Compliance tab | `/v1/fleet/hosts/{host_id}` (policy_state block already present); a separate `/v1/fleet/compliance?host_id=...` filter is **not** in v1. |
@@ -653,7 +653,7 @@ a contract gap and must be resolved before implementation.
 ## 10. Resolution of prior open questions (producer-decided)
 
 All seven open questions from Draft v0 §10 are now closed by the producer
-spec (sigil 3b.4 §9). Recorded here so future readers don't reopen them:
+spec (lodeline 3b.4 §9). Recorded here so future readers don't reopen them:
 
 | # | Draft v0 question | Producer resolution | Where applied |
 |---|---|---|---|
@@ -670,17 +670,17 @@ spec (sigil 3b.4 §9). Recorded here so future readers don't reopen them:
 ## 11. Out of scope for this contract
 
 Aligned with producer spec §8. Items here are explicitly **not** in
-`sigil-server 0.5.0`; any push to add them needs a new contract version.
+`lodeline-server 0.5.0`; any push to add them needs a new contract version.
 
 | Item | Why | Follow-up venue |
 |---|---|---|
 | Write endpoints (mutate fleet state) | Triage state is consumer-local; no mutation from outside. | Permanent reject |
-| SSE / WebSocket streaming | Polling sufficient (UI/UX §7.2: 5s). | 3b.4.1 or sigil-cloud |
+| SSE / WebSocket streaming | Polling sufficient (UI/UX §7.2: 5s). | 3b.4.1 or lodeline-cloud |
 | Per-consumer auth tokens + rotation | Single shared bearer in v1. | 3b.4.1 |
-| mTLS on the read side | Reverse proxy + TLS = operator responsibility. | sigil-cloud |
+| mTLS on the read side | Reverse proxy + TLS = operator responsibility. | lodeline-cloud |
 | Aggregations > 24h window | Longer retrospectives via client-side or SIEM. | 3b.4.1 |
 | Saved queries / hunts / case grouping | YAGNI per UI/UX §11. | Permanent reject |
-| Multi-tenancy / org-team scoping | `sigil-cloud` territory; explicit per `CLAUDE.md`. | sigil-cloud |
+| Multi-tenancy / org-team scoping | `lodeline-cloud` territory; explicit per `CLAUDE.md`. | lodeline-cloud |
 | Server-side rate limiting | `429` code reserved but not enforced in v1. | 3b.4.1 |
 | Full event index (host_id, kind, severity) | Per-host summary is enough at MVP; `/v1/events` is JSONL scan. | Driven by profiling |
 | Per-host fine-grained lock | Single `RwLock<HashMap>` at MVP. | Driven by contention measurement |
@@ -690,7 +690,7 @@ Aligned with producer spec §8. Items here are explicitly **not** in
 ## 12. Producer alignment trace
 
 This contract's v1.0 was produced by reconciling Draft v0 (consumer-side,
-2026-05-16) with the producer spec (`Ju571nK/sigil` Phase 3b.4, 2026-05-17).
+2026-05-16) with the producer spec (`Ju571nK/lodeline` Phase 3b.4, 2026-05-17).
 The reconciliation moves were:
 
 | Consumer-side change | Driver |
@@ -710,12 +710,12 @@ The reconciliation moves were:
 
 ### 12.1 After-ship checklist (mirrors producer §11.4)
 
-When `sigil-server 0.5.0` ships:
-1. Update this doc's status header to *"locked against sigil-server 0.5.0"*.
-2. Start `sigil-manager` Plan 02 (`FleetClient` Go interface + Mock client +
+When `lodeline-server 0.5.0` ships:
+1. Update this doc's status header to *"locked against lodeline-server 0.5.0"*.
+2. Start `lodeline-manager` Plan 02 (`FleetClient` Go interface + Mock client +
    UI wiring + triage SQLite + single-admin JWT).
-3. Update `sigil-manager` README quickstart to mention
-   `SIGIL_SERVER_BASE_URL` and `SIGIL_SERVER_READ_TOKEN` env vars.
+3. Update `lodeline-manager` README quickstart to mention
+   `LODELINE_SERVER_BASE_URL` and `LODELINE_SERVER_READ_TOKEN` env vars.
 
 Until `0.5.0` ships, Plan 02 implements against this v1.0 contract behind a
 `FleetClient` trait + Mock for development.
@@ -727,24 +727,24 @@ Until `0.5.0` ships, Plan 02 implements against this v1.0 contract behind a
 These are issues codex's adversarial review (2026-05-17) flagged that the
 producer's locked spec does **not** address. They are recorded here so the
 consumer side knows what to compensate for, and so follow-up issues against
-`Ju571nK/sigil` are easy to file later.
+`Ju571nK/lodeline` are easy to file later.
 
 | Gap | What's missing | Consumer-side impact / mitigation |
 |---|---|---|
-| **Clock skew** | No `server_received_ts` on events. `last_seen_ts` / `since` / `until` all rely on agent's `event.ts`. | Hosts with bad clocks may flip status. Mitigation: surface "host clock drifted from server" warning if a HostMetaSnapshot's `ts` is materially behind the consumer's wall clock at fetch time. Follow-up issue on sigil. |
+| **Clock skew** | No `server_received_ts` on events. `last_seen_ts` / `since` / `until` all rely on agent's `event.ts`. | Hosts with bad clocks may flip status. Mitigation: surface "host clock drifted from server" warning if a HostMetaSnapshot's `ts` is materially behind the consumer's wall clock at fetch time. Follow-up issue on lodeline. |
 | **Search** | `/v1/events` has no `q=`, no full-text. UI/UX §7.3 wants `q=injection`. | Plan 02 implements client-side filter on response bodies (limited to current page). Server-side search is post-v1. |
 | **Severity expansion** | Filter only accepts `info,warn`. Future variants with `error/critical` are undefined. | Mitigation: consumer treats unknown severity as `warn` for display, includes the raw string in the event detail panel. |
 | **Unknown evidence variant display** | Wire-stable additive — server returns it; consumer must render. | Mitigation: alert queue row template has a generic-evidence fallback (kind text + ts + host + "Unknown evidence — view raw"). |
-| **Retention** | Server JSONL retention not in contract. UI may link to a triage row whose source event has rotated out. | Mitigation: triage rows in `sigil-manager` DB record a snapshot of the event's evidence payload at triage time, not just a reference. |
-| **Observability surface** | No endpoint reports index lag, parse error count, scan time. | Mitigation: Settings page shows last response latency + connection state; deep ops are operator's `journalctl` problem. Follow-up issue on sigil. |
+| **Retention** | Server JSONL retention not in contract. UI may link to a triage row whose source event has rotated out. | Mitigation: triage rows in `lodeline-manager` DB record a snapshot of the event's evidence payload at triage time, not just a reference. |
+| **Observability surface** | No endpoint reports index lag, parse error count, scan time. | Mitigation: Settings page shows last response latency + connection state; deep ops are operator's `journalctl` problem. Follow-up issue on lodeline. |
 | **Batch fetch** | Slide-over fetches per event. | Mitigation: aggressive client-side caching (LRU, 200 events). Acceptable for MVP analyst. |
 | **`open_event_counts_24h` definition** | Field name says "open" but server has no triage state — really means "events emitted in 24h". | Mitigation: in UI tooltip clarify it's a "raw count", not "outstanding alerts". |
 | **Alerts definition drift** | Server-computed `open_alert_count_24h` uses producer's recommendation; consumer overrides recompute. | Mitigation: UI labels server-side count differently from consumer-derived count when the override is non-default. |
-| ~~**`open_alert_count_24h` spec/impl divergence**~~ **RESOLVED** | ~~Spec §4.5 says "events matching `alerts_definition_default`"; impl `0dce160` returns plain `sum_warn()`.~~ Fixed in sigil `8ebfd49` (#21, 2026-05-28): now counts only alerts-definition kinds, 1:1 with `/v1/meta` via `is_alert_evidence`. | No mitigation needed — trust the server count when the alerts definition equals the default; recompute client-side only when the operator overrides it. See §14.9.4. |
+| ~~**`open_alert_count_24h` spec/impl divergence**~~ **RESOLVED** | ~~Spec §4.5 says "events matching `alerts_definition_default`"; impl `0dce160` returns plain `sum_warn()`.~~ Fixed in lodeline `8ebfd49` (#21, 2026-05-28): now counts only alerts-definition kinds, 1:1 with `/v1/meta` via `is_alert_evidence`. | No mitigation needed — trust the server count when the alerts definition equals the default; recompute client-side only when the operator overrides it. See §14.9.4. |
 
-### 13.1 Suggested follow-up issues for `Ju571nK/sigil`
+### 13.1 Suggested follow-up issues for `Ju571nK/lodeline`
 
-- ✅ **CLOSED — [`Ju571nK/sigil#21`](https://github.com/Ju571nK/sigil/issues/21)
+- ✅ **CLOSED — [`Ju571nK/lodeline#21`](https://github.com/Ju571nK/lodeline/issues/21)
   (filed 2026-05-19, fixed `8ebfd49` 2026-05-28):**
   `/v1/fleet/risk.open_alert_count_24h` now respects
   `alerts_definition_default`. The old impl (`0dce160`) returned
@@ -763,7 +763,7 @@ consumer side knows what to compensate for, and so follow-up issues against
 - Consider `?q=` (substring search on `subject.value` + `evidence.kind`)
   for `/v1/events` once profiling justifies the index cost (codex #15).
 
-These are not blocking Plan 02 — `sigil-manager` will ship against the
+These are not blocking Plan 02 — `lodeline-manager` will ship against the
 contract as locked, then file these as Phase 3b.4.1 candidates.
 
 ## 14. Post-lock additive schema notes
@@ -777,13 +777,13 @@ the correct shape for fields it covers. Consumer-side display code
 (when implemented) should be ready for the additional enum values and
 scope shapes recorded below.
 
-### 14.1 Phase 3b.4 — fleet aggregation API (shipped 2026-05-17, sigil main `d495ea3`)
+### 14.1 Phase 3b.4 — fleet aggregation API (shipped 2026-05-17, lodeline main `d495ea3`)
 
 This is the read API this contract was built against. Producer side
 shipped exactly the 9 endpoints, scopes, and schemas locked in §4-§7.
 No consumer-visible deltas vs this contract.
 
-### 14.2 Phase 3b.6 — application-form AI agent coverage (shipped 2026-05-17, sigil main `d495ea3`)
+### 14.2 Phase 3b.6 — application-form AI agent coverage (shipped 2026-05-17, lodeline main `d495ea3`)
 
 Two new parsers (Claude Desktop, Continue.dev) emit through the same
 `Evidence::AiGuardRiskAssessed` path documented in §5. Wire additions:
@@ -823,7 +823,7 @@ app-form parsers, and `hook_event` may now take the values
 `"mcp_command"`, `"slash_command"`, or `"custom_command"` from the
 Continue.dev parser.
 
-**Consumer impact when sigil-manager builds the fleet UI:**
+**Consumer impact when lodeline-manager builds the fleet UI:**
 - Render new tool strings with appropriate icons / labels — recommended:
   Claude Desktop = Anthropic icon variant, Continue.dev = Continue logo,
   fall back to generic AI badge for unknown values.
@@ -834,10 +834,10 @@ Continue.dev parser.
   cover both CLI- and application-form emissions.
 
 **Reference:** producer spec at
-`Ju571nK/sigil:docs/superpowers/specs/2026-05-17-phase-3b6-app-form-coverage-design.html`
+`Ju571nK/lodeline:docs/superpowers/specs/2026-05-17-phase-3b6-app-form-coverage-design.html`
 (local-only — gitignored on producer side).
 
-### 14.3 Phase 3b.6.1 — Continue.dev per-repo discovery (shipped 2026-05-18, sigil main `f49b6de`)
+### 14.3 Phase 3b.6.1 — Continue.dev per-repo discovery (shipped 2026-05-18, lodeline main `f49b6de`)
 
 Adds operator-configurable per-repository discovery for Continue.dev:
 the operator lists workspace roots in the signed policy envelope's new
@@ -878,11 +878,11 @@ emits **more events with `tool=continue_dev` + `scope.kind=project`**.
   surface both scopes.
 
 **Reference:** producer spec at
-`Ju571nK/sigil:docs/superpowers/specs/2026-05-17-phase-3b6.1-continue-per-repo-discovery-design.html`
+`Ju571nK/lodeline:docs/superpowers/specs/2026-05-17-phase-3b6.1-continue-per-repo-discovery-design.html`
 and plan
-`Ju571nK/sigil:docs/superpowers/plans/2026-05-17-phase-3b6.1-continue-per-repo-discovery.html`.
+`Ju571nK/lodeline:docs/superpowers/plans/2026-05-17-phase-3b6.1-continue-per-repo-discovery.html`.
 
-### 14.4 Phase 3b.6.2 — Claude Code + Codex per-repo discovery (shipped 2026-05-19, sigil main `9ddd37b`)
+### 14.4 Phase 3b.6.2 — Claude Code + Codex per-repo discovery (shipped 2026-05-19, lodeline main `9ddd37b`)
 
 Extends the 3b.6.1 pattern to two more tools. Two new policy envelope
 fields on the producer side — `claude_code_workspaces: Vec<String>`
@@ -919,15 +919,15 @@ under tool strings that have existed since Phase 3b.1.
   are reused — no rendering changes required.
 
 **Reference:** producer spec at
-`Ju571nK/sigil:docs/superpowers/specs/2026-05-18-phase-3b6.2-claude-codex-per-repo-discovery-design.html`
+`Ju571nK/lodeline:docs/superpowers/specs/2026-05-18-phase-3b6.2-claude-codex-per-repo-discovery-design.html`
 and plan
-`Ju571nK/sigil:docs/superpowers/plans/2026-05-18-phase-3b6.2-claude-codex-per-repo-discovery.html`.
+`Ju571nK/lodeline:docs/superpowers/plans/2026-05-18-phase-3b6.2-claude-codex-per-repo-discovery.html`.
 Producer explicitly requested this §14 entry be added (per the spec's
 producer-first §0 paragraph).
 
 ### 14.5 Aggregate consumer-side checklist (across 3b.4 → 3b.7)
 
-For Plan 02 and beyond, sigil-manager's rendering paths MUST handle:
+For Plan 02 and beyond, lodeline-manager's rendering paths MUST handle:
 
 - **Six `tool` values:** `claude_code`, `codex`, `claude_desktop`,
   `continue_dev` (3b.1 + 3b.6), `gemini`, `cursor` (3b.7) — plus a
@@ -951,7 +951,7 @@ Mock fixtures in `internal/fleet/mock.go` (Plan 02 Task 4) MUST cover
 at least one event from each of these surfaces so the SPA's rendering
 paths get exercised against realistic producer-side shapes.
 
-### 14.6 Phase 3b.5 — operator-tunable rubric + doctor section (shipped 2026-05-19, sigil main `d00b958`)
+### 14.6 Phase 3b.5 — operator-tunable rubric + doctor section (shipped 2026-05-19, lodeline main `d00b958`)
 
 **Wire-relevant changes for the consumer: none.**
 
@@ -960,12 +960,12 @@ paths get exercised against realistic producer-side shapes.
 - `PolicyDocument.rubric_overrides: HashMap<String, f32>` — operator
   override knob inside the signed policy envelope. Keys are
   `rubric::kind_key()` output (e.g., `destructive_in_hook_script`).
-- `sigil doctor` CLI gains an AI Guard diagnostic section reading from
+- `lodeline doctor` CLI gains an AI Guard diagnostic section reading from
   a new agent control IPC `DoctorAiGuardReport`.
 
 The wire's `GET /v1/policy/meta` deliberately does NOT expose the
 policy body — it returns only `policy_version` + signing fields
-(`crates/sigil-server/src/routes/policy_meta.rs`). So consumer types
+(`crates/lodeline-server/src/routes/policy_meta.rs`). So consumer types
 need no change; reasons that ride on `ai_guard_risk_assessed` still
 carry their existing `kind` discriminator + per-variant fields.
 
@@ -973,14 +973,14 @@ If a later phase exposes the effective rubric on the wire (e.g., via
 `GET /v1/policy/rubric` or a `meta.rubric` block), this section gets
 upgraded to a non-empty consumer impact note. Until then, no action.
 
-### 14.7 Phase 3b.7 — declarative rule packs + Gemini / Cursor coverage (shipped 2026-05-19, sigil main `8cb8d61`)
+### 14.7 Phase 3b.7 — declarative rule packs + Gemini / Cursor coverage (shipped 2026-05-19, lodeline main `8cb8d61`)
 
 **Wire-relevant changes for the consumer:** the `tool` field on
 `ai_guard_risk_assessed` evidence gains two additive values.
 
 | Wire string | Source | Notes |
 |---|---|---|
-| `gemini` | `AiTool::Gemini` (`crates/sigil-core/src/event.rs`) | Google Gemini CLI — `~/.config/gemini-cli/*` |
+| `gemini` | `AiTool::Gemini` (`crates/lodeline-core/src/event.rs`) | Google Gemini CLI — `~/.config/gemini-cli/*` |
 | `cursor` | `AiTool::Cursor` (same file) | Cursor IDE — `~/.cursor/*` |
 
 The existing four values (`claude_code`, `codex`, `claude_desktop`,
@@ -991,7 +991,7 @@ The existing four values (`claude_code`, `codex`, `claude_desktop`,
 > generic fallback path.
 
 3b.7 also adds **one new `AiGuardReason` variant** that rides on
-`ai_guard_risk_assessed.reasons[]` (`crates/sigil-core/src/event.rs`,
+`ai_guard_risk_assessed.reasons[]` (`crates/lodeline-core/src/event.rs`,
 `McpServerLocalCommand`):
 
 | Reason `kind` | Fields | Emitted when |
@@ -1016,11 +1016,11 @@ The existing four values (`claude_code`, `codex`, `claude_desktop`,
    open-shape) — pass-through is automatic.
 
 The `rule_packs:` field added to `PolicyDocument` in 3b.7 lives inside
-the signed policy envelope (consumed by sigil-agent), not on the wire.
+the signed policy envelope (consumed by lodeline-agent), not on the wire.
 Same wire-isolation as `rubric_overrides` in §14.6 — no consumer
 impact unless a later phase exposes pack metadata via the read API.
 
-### 14.8 Phase 3b.3.1 — recursive source/include hook-script scan (shipped 2026-05-20, sigil main `f5a80bd`)
+### 14.8 Phase 3b.3.1 — recursive source/include hook-script scan (shipped 2026-05-20, lodeline main `f5a80bd`)
 
 **Wire-relevant change for the consumer:** the
 `destructive_in_hook_script` reason variant gains one additive field.
@@ -1048,13 +1048,13 @@ with an empty chain. No breaking change.
    with a populated `source_chain` to exercise the breadcrumb path.
 3. `internal/fleet/types.go`: no change — reasons stay raw JSON.
 
-Tracked consumer-side as `Ju571nK/sigil-manager#5`; producer issue
-`Ju571nK/sigil#24`.
+Tracked consumer-side as `Ju571nK/lodeline-manager#5`; producer issue
+`Ju571nK/lodeline#24`.
 
-### 14.9 Post-0.5.0 wire batch — sigil-hook, AiTool growth, /v1/meta license + audit, D2 resolved (shipped 2026-05-20 → 2026-06-07, sigil main `c6d0018`)
+### 14.9 Post-0.5.0 wire batch — lodeline-hook, AiTool growth, /v1/meta license + audit, D2 resolved (shipped 2026-05-20 → 2026-06-07, lodeline main `c6d0018`)
 
 This entry absorbs every additive wire change the producer shipped
-between the 3b.3.1 lock (§14.8) and `sigil` workspace **v0.6.2**. None of
+between the 3b.3.1 lock (§14.8) and `lodeline` workspace **v0.6.2**. None of
 it breaks the v1.0 contract — all changes are additive enum variants,
 `#[serde(default)]` fields, or new top-level `/v1/meta` keys. The
 consumer's tolerant decoders (`Evidence` keeps raw JSON + `Kind`;
@@ -1086,9 +1086,9 @@ New sibling field on `Evidence::AiGuardRiskAssessed`:
 `tool == "other"` and `tool_label` is present; otherwise fall back to
 the `humanTool()` mapping.
 
-#### 14.9.2 sigil-hook — four new `Evidence` kinds + `Confidence` + `source.kind=agent_hook`
+#### 14.9.2 lodeline-hook — four new `Evidence` kinds + `Confidence` + `source.kind=agent_hook`
 
-sigil-hook (runtime observe/enforce at the agent tool boundary) emits
+lodeline-hook (runtime observe/enforce at the agent tool boundary) emits
 four new variants through `/v1/events`. `Evidence` is
 `#[serde(tag = "kind", rename_all = "snake_case")]`, so each appears as a
 new `kind` string the consumer's generic-evidence fallback already
@@ -1120,7 +1120,7 @@ don't assume.
 
 #### 14.9.3 `/v1/meta` — `license` + `audit_head` top-level fields
 
-> **Superseded for `license`:** sigil v0.9.0 removed `license` and added
+> **Superseded for `license`:** lodeline v0.9.0 removed `license` and added
 > `fleet`; see §14.13. `audit_head` below is unchanged.
 
 Two new top-level keys on `GET /v1/meta` (§5.2). Both are additive and do
@@ -1145,7 +1145,7 @@ Two new top-level keys on `GET /v1/meta` (§5.2). Both are additive and do
 `state` is `"ok"` or `"over_limit"` (snake_case). `customer_id`,
 `license_id`, `not_after` are `Option` (absent/null when unlicensed /
 open-source). This is the field consumer issue
-[`Ju571nK/sigil-manager#7`](https://github.com/Ju571nK/sigil-manager/issues/7)
+[`Ju571nK/lodeline-manager#7`](https://github.com/Ju571nK/lodeline-manager/issues/7)
 renders in the fleet UI (P2).
 
 **`audit_head`** (`2b5d61c`, 2026-05-21) — the signed head of the audit
@@ -1202,13 +1202,13 @@ the operator **overrides** `alerts_definition_default`.
 | 6 | D2 doc/comment corrections (§10 F10, §13.1, client.go RiskRow) | this contract + Go | **P1, done in this change** |
 | 7 | Go types unchanged — `Evidence` raw JSON + `Tool` string stay tolerant | `internal/fleet/` | no-op |
 
-Producer asks filed/tracked: D2 = `Ju571nK/sigil#21` (closed); license UI
-= `Ju571nK/sigil-manager#7` (open). No new producer ask is required — this
+Producer asks filed/tracked: D2 = `Ju571nK/lodeline#21` (closed); license UI
+= `Ju571nK/lodeline-manager#7` (open). No new producer ask is required — this
 batch is the consumer absorbing producer's shipped wire surface.
 
-### 14.10 Phase v0.7.0 — `ai_guard_toggle_drift` evidence kind (shipped 2026-06-28, sigil main `3aaa675`)
+### 14.10 Phase v0.7.0 — `ai_guard_toggle_drift` evidence kind (shipped 2026-06-28, lodeline main `3aaa675`)
 
-The producer's v0.7.0 (`sigil#186` / `#147`) adds **dangerous-toggle
+The producer's v0.7.0 (`lodeline#186` / `#147`) adds **dangerous-toggle
 OFF→ON drift detection**: when an agent's config flips a dangerous setting
 on (auto-approval, sandbox-disabled, …), AI-Guard emits a new evidence
 variant. Additive — the consumer's tolerant decoders already survive it;
@@ -1232,7 +1232,7 @@ operator name for a `tool == "other"` match, same rule as §14.9.1.
 
 #### 14.10.2 Now an alert kind — affects `open_alert_count_24h`
 
-Unlike the four sigil-hook kinds (§14.9.2), `ai_guard_toggle_drift` **is**
+Unlike the four lodeline-hook kinds (§14.9.2), `ai_guard_toggle_drift` **is**
 added to `/v1/meta.alerts_definition_default.additional_kinds` (`meta.rs`)
 and to the server's `is_alert_evidence` helper
 (`fleet_index_update.rs`). So:
@@ -1256,13 +1256,13 @@ and to the server's `is_alert_evidence` helper
 No new producer ask — this is the consumer absorbing v0.7.0's shipped wire
 surface.
 
-### 14.11 `AiGuardReason` variant census (through 0.7.1-pre, sigil main `580d2b6`, 2026-07-01)
+### 14.11 `AiGuardReason` variant census (through 0.7.1-pre, lodeline main `580d2b6`, 2026-07-01)
 
 Prior §14 entries recorded reason variants only when a phase note called
 them out (§14.2 listed the 3b.1 five; §14.7 added
 `mcp_server_local_command`; §14.8 added `source_chain`). That left the
 enum under-mirrored: consumer issue
-[`Ju571nK/sigil-manager#22`](https://github.com/Ju571nK/sigil-manager/issues/22)
+[`Ju571nK/lodeline-manager#22`](https://github.com/Ju571nK/lodeline-manager/issues/22)
 flagged `mcp_server_suspicious_launcher` as missing, and a full diff
 against producer `event.rs` found nine more undocumented variants. This
 entry is the **complete census** of `AiGuardReason` as of `580d2b6`
@@ -1323,7 +1323,7 @@ Closes consumer issue `#22`. `#190` (scan remediation hints) and `#189`
 ### 14.12 v0.8.0 consumer audit — controls and new reason payloads (2026-09-13)
 
 Verified producer `origin/main` at `626bf42` against manager `047e777`.
-Producer clone is now `../sigil` (the historical `../anti_i` path is absent).
+Producer clone is now `../lodeline` (the historical `../anti_i` path is absent).
 This section records the audit baseline. Controls, reason details, event
 investigation, pagination, and Settings error handling are implemented on
 `codex/observed-controls` (2026-09-13); see §14.12.4 for delivery scope.
@@ -1335,9 +1335,9 @@ excluded from this shipped-main comparison.
 Producer `ff982a3` (#207 / PR #215), `6f6a296` (#199), and `789f3b6`
 (#200) expose `controls` on `ai_guard_risk_assessed` and
 `GET /v1/fleet/hosts/{host_id}.ai_guard.by_tool[tool]`.
-Source: `sigil-core/src/event.rs::AiGuardControl`,
-`sigil-server/src/fleet_index.rs::RiskEntry`, and
-`sigil-server/src/routes/fleet_hosts.rs::get_fleet_host_by_id`.
+Source: `lodeline-core/src/event.rs::AiGuardControl`,
+`lodeline-server/src/fleet_index.rs::RiskEntry`, and
+`lodeline-server/src/routes/fleet_hosts.rs::get_fleet_host_by_id`.
 
 | Field | Shape / meaning |
 |---|---|
@@ -1410,8 +1410,8 @@ remain outside the default queue. Expose them through event investigation
 without silently changing server alert-count semantics.
 
 MDM context is not yet on the fleet wire: retain the existing dependency
-[manager #31](https://github.com/Ju571nK/sigil-manager/issues/31) /
-[producer #211](https://github.com/Ju571nK/sigil/issues/211).
+[manager #31](https://github.com/Ju571nK/lodeline-manager/issues/31) /
+[producer #211](https://github.com/Ju571nK/lodeline/issues/211).
 Full UI findings and suggested implementation order are recorded in
 [the 2026-09-13 audit](../../reviews/2026-09-13-webui-backend-gap-audit.md).
 
@@ -1453,11 +1453,11 @@ Hook deep links, stale metadata and API failures). No live producer deployment
 was exercised. Existing producer cache behavior and event retention still
 limit freshness/completeness; this delivery does not add a new snapshot API.
 
-### 14.13 v0.9.0 — `/v1/meta.fleet` replaces `license` (sigil main `f14bd86`, release v0.9.0, 2026-10-09)
+### 14.13 v0.9.0 — `/v1/meta.fleet` replaces `license` (lodeline main `f14bd86`, release v0.9.0, 2026-10-09)
 
 Producer PR #233 removed the license verification module. `GET /v1/meta` no
 longer returns `license`; it returns a `fleet` object computed from the same
-active-host index (`sigil-server/src/routes/meta.rs`):
+active-host index (`lodeline-server/src/routes/meta.rs`):
 
 ```json
 "fleet": { "active_host_count": 12, "active_window_days": 7 }

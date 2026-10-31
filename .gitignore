@@ -11,7 +11,7 @@ Thumbs.db
 .env.*.local
 
 # Go
-/sigil-manager
+/lodeline-manager
 /dist/
 *.test
 coverage.out
@@ -35,4 +35,5 @@ internal/server/dist/*
 !internal/server/dist/index.html
 
 # Local planning notes
+/lodeline-strategy.md
 /sigil-strategy.md

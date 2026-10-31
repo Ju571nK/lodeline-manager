@@ -1,4 +1,4 @@
-// Package auth implements sigil-manager's single-admin authentication: a
+// Package auth implements lodeline-manager's single-admin authentication: a
 // bcrypt-verified password and an HS256-signed JWT session cookie. Per
 // CLAUDE.md and UI/UX §9 this is the ONLY auth in v1 — no SSO, no OAuth,
 // no refresh tokens, no multi-user.

@@ -1,6 +1,6 @@
-// Command sigil-manager runs the consumer-side console: HTTPS-fronted Go
+// Command lodeline-manager runs the consumer-side console: HTTPS-fronted Go
 // binary that mounts the embedded React SPA plus the `/api/v1/*` HTTP
-// surface backed by [fleet.Client] (reads from sigil-server) and
+// surface backed by [fleet.Client] (reads from lodeline-server) and
 // [triage.Repo] (local SQLite for ack/assign/notes).
 //
 // All runtime configuration is environment-driven; see `.env.example` at
@@ -18,19 +18,19 @@ import (
 	"syscall"
 	"time"
 
-	v1 "github.com/Ju571nK/sigil-manager/internal/api/v1"
-	"github.com/Ju571nK/sigil-manager/internal/auth"
-	"github.com/Ju571nK/sigil-manager/internal/config"
-	"github.com/Ju571nK/sigil-manager/internal/fleet"
-	"github.com/Ju571nK/sigil-manager/internal/server"
-	"github.com/Ju571nK/sigil-manager/internal/triage"
+	v1 "github.com/Ju571nK/lodeline-manager/internal/api/v1"
+	"github.com/Ju571nK/lodeline-manager/internal/auth"
+	"github.com/Ju571nK/lodeline-manager/internal/config"
+	"github.com/Ju571nK/lodeline-manager/internal/fleet"
+	"github.com/Ju571nK/lodeline-manager/internal/server"
+	"github.com/Ju571nK/lodeline-manager/internal/triage"
 )
 
 const shutdownGrace = 5 * time.Second
 
 func main() {
 	if err := run(); err != nil {
-		log.Fatalf("sigil-manager: %v", err)
+		log.Fatalf("lodeline-manager: %v", err)
 	}
 }
 
@@ -70,9 +70,9 @@ func run() error {
 			AdminPasswordBcrypt: cfg.AdminPasswordBcrypt,
 			// In production a TLS terminator (Caddy / Traefik / Cloudflare)
 			// fronts the binary, so Secure cookies are mandatory. Local dev
-			// without TLS overrides via SIGIL_INSECURE_COOKIE=1 — anything
+			// without TLS overrides via LODELINE_INSECURE_COOKIE=1 — anything
 			// else defaults to secure.
-			CookieSecure: os.Getenv("SIGIL_INSECURE_COOKIE") != "1",
+			CookieSecure: os.Getenv("LODELINE_INSECURE_COOKIE") != "1",
 		},
 	}
 
@@ -91,7 +91,7 @@ func run() error {
 
 	listenErr := make(chan error, 1)
 	go func() {
-		log.Printf("sigil-manager: mode=%s addr=%s db=%s", modeLabel(cfg), cfg.ListenAddr, cfg.TriageDBPath)
+		log.Printf("lodeline-manager: mode=%s addr=%s db=%s", modeLabel(cfg), cfg.ListenAddr, cfg.TriageDBPath)
 		if err := httpSrv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			listenErr <- err
 		}
@@ -100,11 +100,11 @@ func run() error {
 
 	select {
 	case <-ctx.Done():
-		log.Printf("sigil-manager: shutdown signal received, draining for up to %s", shutdownGrace)
+		log.Printf("lodeline-manager: shutdown signal received, draining for up to %s", shutdownGrace)
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), shutdownGrace)
 		defer cancel()
 		if err := httpSrv.Shutdown(shutdownCtx); err != nil {
-			log.Printf("sigil-manager: shutdown error: %v", err)
+			log.Printf("lodeline-manager: shutdown error: %v", err)
 		}
 	case err := <-listenErr:
 		if err != nil {
@@ -118,5 +118,5 @@ func modeLabel(cfg *config.Config) string {
 	if cfg.IsMockFleet() {
 		return "mock-fleet"
 	}
-	return "live-fleet (" + cfg.SigilServerBaseURL + ")"
+	return "live-fleet (" + cfg.LodelineServerBaseURL + ")"
 }

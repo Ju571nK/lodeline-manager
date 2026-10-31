@@ -10,7 +10,7 @@ formatters:
   settings:
     goimports:
       local-prefixes:
-        - github.com/Ju571nK/sigil-manager
+        - github.com/Ju571nK/lodeline-manager
 
 linters:
   enable:

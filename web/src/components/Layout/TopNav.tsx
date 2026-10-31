@@ -10,7 +10,7 @@ import { cn } from '@/lib/utils';
 
 /**
  * Top navigation strip. Per UI/UX §4:
- *   - Brand mark on the left (◆ sigil).
+ *   - Brand mark on the left (◆ lodeline).
  *   - Primary nav items: Alerts (Plan 02), Fleet (Plan 03), Settings
  *     (UI/UX §5.4 minimal stub — connection/fleet/audit/auth read-only).
  *   - Connection-state pill combines liveness with the shared read-API
@@ -52,7 +52,7 @@ export function TopNav() {
       <div className="mx-auto flex h-12 max-w-[1280px] items-center gap-6 px-6">
         <Link to="/alerts" className="flex items-center gap-2 text-text-primary font-semibold">
           <span className="text-accent">◆</span>
-          <span>sigil</span>
+          <span>lodeline</span>
         </Link>
 
         <nav className="flex items-center gap-1 text-sm">
@@ -132,7 +132,7 @@ function ConnectionPill({ state }: { state: ConnectionState }) {
   return (
     <div
       className="flex items-center gap-1.5 text-xs text-text-muted"
-      title={`sigil-server: ${labels[state]}`}
+      title={`lodeline-server: ${labels[state]}`}
     >
       <span className={cn('inline-block h-1.5 w-1.5 rounded-full', dotColor[state])} />
       <span>{labels[state]}</span>

@@ -7,8 +7,8 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
-	"github.com/Ju571nK/sigil-manager/internal/httputil"
-	"github.com/Ju571nK/sigil-manager/internal/triage"
+	"github.com/Ju571nK/lodeline-manager/internal/httputil"
+	"github.com/Ju571nK/lodeline-manager/internal/triage"
 )
 
 // upsertRequest is the POST body for /api/v1/triage/upsert.

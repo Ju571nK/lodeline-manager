@@ -1,4 +1,4 @@
-// Package config loads sigil-manager's runtime configuration from environment
+// Package config loads lodeline-manager's runtime configuration from environment
 // variables. The Config struct is the single shape every other internal package
 // reads from; Load is the single producer.
 //
@@ -19,24 +19,24 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Ju571nK/sigil-manager/internal/auth"
+	"github.com/Ju571nK/lodeline-manager/internal/auth"
 )
 
-// Config is the resolved runtime configuration for a sigil-manager process.
+// Config is the resolved runtime configuration for a lodeline-manager process.
 // Constructed via Load(). All fields are immutable after construction.
 type Config struct {
 	OIDC auth.OIDCConfig
 	// Server
 	ListenAddr string // LISTEN_ADDR, default ":8080"
 
-	// Fleet client (sigil-server target)
-	SigilServerBaseURL   string // SIGIL_SERVER_BASE_URL, required unless MockFleet
-	SigilServerReadToken string // SIGIL_SERVER_READ_TOKEN, required unless MockFleet
-	MockFleet            bool   // MOCK_FLEET=1 swaps in the mock client
-	// SigilServerTLS is non-nil when SIGIL_SERVER_CA_PATH or the
-	// SIGIL_SERVER_CLIENT_CERT_PATH / SIGIL_SERVER_CLIENT_KEY_PATH pair is set:
-	// a custom CA and/or the client certificate an mTLS sigil-server demands.
-	SigilServerTLS *tls.Config
+	// Fleet client (lodeline-server target)
+	LodelineServerBaseURL   string // LODELINE_SERVER_BASE_URL, required unless MockFleet
+	LodelineServerReadToken string // LODELINE_SERVER_READ_TOKEN, required unless MockFleet
+	MockFleet               bool   // MOCK_FLEET=1 swaps in the mock client
+	// LodelineServerTLS is non-nil when LODELINE_SERVER_CA_PATH or the
+	// LODELINE_SERVER_CLIENT_CERT_PATH / LODELINE_SERVER_CLIENT_KEY_PATH pair is set:
+	// a custom CA and/or the client certificate an mTLS lodeline-server demands.
+	LodelineServerTLS *tls.Config
 
 	// Triage state DB
 	TriageDBPath string // TRIAGE_DB_PATH, default "./var/triage.sqlite"
@@ -52,13 +52,13 @@ type Config struct {
 	// Informational (consumed by SPA via /api/v1/meta, not the server core)
 	FleetPollInterval time.Duration // FLEET_POLL_INTERVAL_SECONDS, default 5s
 
-	// Fleet read cache (decouples browser fan-out from sigil-server load).
+	// Fleet read cache (decouples browser fan-out from lodeline-server load).
 	FleetCacheDisabled   bool // FLEET_CACHE_DISABLED=1 → pass-through, no cache
 	FleetCacheMaxEntries int  // FLEET_CACHE_MAX_ENTRIES, default 512
 }
 
 // IsMockFleet reports whether the operator opted into the in-process mock
-// FleetClient. When true, SigilServerBaseURL and SigilServerReadToken are
+// FleetClient. When true, LodelineServerBaseURL and LodelineServerReadToken are
 // optional.
 func (c *Config) IsMockFleet() bool {
 	return c.MockFleet
@@ -75,7 +75,7 @@ var ErrMissingRequired = errors.New("config: required env var unset")
 //   - JWT_SECRET must be at least 32 bytes after trimming.
 //   - ADMIN_PASSWORD_BCRYPT must look like a bcrypt hash ($2a$ / $2b$ / $2y$
 //     prefix) — Load does not invoke bcrypt; that's the auth package's job.
-//   - MOCK_FLEET="1" relaxes SIGIL_SERVER_BASE_URL and SIGIL_SERVER_READ_TOKEN.
+//   - MOCK_FLEET="1" relaxes LODELINE_SERVER_BASE_URL and LODELINE_SERVER_READ_TOKEN.
 //
 // Errors wrap ErrMissingRequired for the "unset required" case so callers can
 // `errors.Is(err, config.ErrMissingRequired)`.
@@ -85,8 +85,8 @@ func Load() (*Config, error) {
 		MockFleet:    os.Getenv("MOCK_FLEET") == "1",
 		TriageDBPath: strDefault("TRIAGE_DB_PATH", "./var/triage.sqlite"),
 
-		SigilServerBaseURL:   strings.TrimSpace(os.Getenv("SIGIL_SERVER_BASE_URL")),
-		SigilServerReadToken: strings.TrimSpace(os.Getenv("SIGIL_SERVER_READ_TOKEN")),
+		LodelineServerBaseURL:   strings.TrimSpace(os.Getenv("LODELINE_SERVER_BASE_URL")),
+		LodelineServerReadToken: strings.TrimSpace(os.Getenv("LODELINE_SERVER_READ_TOKEN")),
 
 		AdminUsername:       strings.TrimSpace(os.Getenv("ADMIN_USERNAME")),
 		AdminPasswordBcrypt: strings.TrimSpace(os.Getenv("ADMIN_PASSWORD_BCRYPT")),
@@ -106,11 +106,11 @@ func Load() (*Config, error) {
 	}
 
 	if !c.MockFleet {
-		if c.SigilServerTLS, err = loadServerTLS(); err != nil {
+		if c.LodelineServerTLS, err = loadServerTLS(); err != nil {
 			return nil, err
 		}
-		if u, perr := url.Parse(c.SigilServerBaseURL); c.SigilServerTLS != nil && (perr != nil || !strings.EqualFold(u.Scheme, "https")) {
-			return nil, errors.New("config: SIGIL_SERVER_CA_PATH / SIGIL_SERVER_CLIENT_CERT_PATH need an https:// SIGIL_SERVER_BASE_URL")
+		if u, perr := url.Parse(c.LodelineServerBaseURL); c.LodelineServerTLS != nil && (perr != nil || !strings.EqualFold(u.Scheme, "https")) {
+			return nil, errors.New("config: LODELINE_SERVER_CA_PATH / LODELINE_SERVER_CLIENT_CERT_PATH need an https:// LODELINE_SERVER_BASE_URL")
 		}
 	}
 
@@ -143,11 +143,11 @@ func (c *Config) validate() error {
 	var missing []string
 
 	if !c.MockFleet {
-		if c.SigilServerBaseURL == "" {
-			missing = append(missing, "SIGIL_SERVER_BASE_URL")
+		if c.LodelineServerBaseURL == "" {
+			missing = append(missing, "LODELINE_SERVER_BASE_URL")
 		}
-		if c.SigilServerReadToken == "" {
-			missing = append(missing, "SIGIL_SERVER_READ_TOKEN")
+		if c.LodelineServerReadToken == "" {
+			missing = append(missing, "LODELINE_SERVER_READ_TOKEN")
 		}
 	}
 	if c.AdminUsername == "" {
@@ -182,34 +182,34 @@ func (c *Config) validate() error {
 	return nil
 }
 
-// loadServerTLS reads the optional sigil-server CA and client certificate.
+// loadServerTLS reads the optional lodeline-server CA and client certificate.
 // It returns nil when none of the three paths is set.
 func loadServerTLS() (*tls.Config, error) {
-	caPath := strings.TrimSpace(os.Getenv("SIGIL_SERVER_CA_PATH"))
-	certPath := strings.TrimSpace(os.Getenv("SIGIL_SERVER_CLIENT_CERT_PATH"))
-	keyPath := strings.TrimSpace(os.Getenv("SIGIL_SERVER_CLIENT_KEY_PATH"))
+	caPath := strings.TrimSpace(os.Getenv("LODELINE_SERVER_CA_PATH"))
+	certPath := strings.TrimSpace(os.Getenv("LODELINE_SERVER_CLIENT_CERT_PATH"))
+	keyPath := strings.TrimSpace(os.Getenv("LODELINE_SERVER_CLIENT_KEY_PATH"))
 	if caPath == "" && certPath == "" && keyPath == "" {
 		return nil, nil
 	}
 	if (certPath == "") != (keyPath == "") {
-		return nil, errors.New("config: SIGIL_SERVER_CLIENT_CERT_PATH and SIGIL_SERVER_CLIENT_KEY_PATH must be set together")
+		return nil, errors.New("config: LODELINE_SERVER_CLIENT_CERT_PATH and LODELINE_SERVER_CLIENT_KEY_PATH must be set together")
 	}
 	tc := &tls.Config{MinVersion: tls.VersionTLS12}
 	if caPath != "" {
 		pem, err := os.ReadFile(caPath)
 		if err != nil {
-			return nil, fmt.Errorf("config: SIGIL_SERVER_CA_PATH: %w", err)
+			return nil, fmt.Errorf("config: LODELINE_SERVER_CA_PATH: %w", err)
 		}
 		pool := x509.NewCertPool()
 		if !pool.AppendCertsFromPEM(pem) {
-			return nil, fmt.Errorf("config: SIGIL_SERVER_CA_PATH: no PEM certificate in %s", caPath)
+			return nil, fmt.Errorf("config: LODELINE_SERVER_CA_PATH: no PEM certificate in %s", caPath)
 		}
 		tc.RootCAs = pool
 	}
 	if certPath != "" {
 		pair, err := tls.LoadX509KeyPair(certPath, keyPath)
 		if err != nil {
-			return nil, fmt.Errorf("config: SIGIL_SERVER_CLIENT_CERT_PATH / SIGIL_SERVER_CLIENT_KEY_PATH: %w", err)
+			return nil, fmt.Errorf("config: LODELINE_SERVER_CLIENT_CERT_PATH / LODELINE_SERVER_CLIENT_KEY_PATH: %w", err)
 		}
 		tc.Certificates = []tls.Certificate{pair}
 	}

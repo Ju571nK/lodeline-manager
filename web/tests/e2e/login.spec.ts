@@ -14,7 +14,7 @@ test.describe('login flow', () => {
     await page.goto('/');
     await expect(page).toHaveURL(/\/login$/);
     // The login card shows the brand label + Sign in button.
-    await expect(page.getByText('sigil-manager').first()).toBeVisible();
+    await expect(page.getByText('lodeline-manager').first()).toBeVisible();
     await expect(page.getByRole('button', { name: /^Sign in$/ })).toBeVisible();
   });
 
@@ -55,7 +55,7 @@ test.describe('login flow', () => {
     await expect(page).toHaveURL(/\/login/);
 
     const cookies = await context.cookies();
-    const session = cookies.find((c) => c.name === 'sigil_session');
+    const session = cookies.find((c) => c.name === 'lodeline_session');
     // Either the cookie is gone, or it's empty / negative max-age — all
     // valid post-logout states depending on browser eviction timing.
     expect(session?.value ?? '').toBe('');

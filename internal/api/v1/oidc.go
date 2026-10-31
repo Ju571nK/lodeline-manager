@@ -4,11 +4,11 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/Ju571nK/sigil-manager/internal/auth"
-	"github.com/Ju571nK/sigil-manager/internal/httputil"
+	"github.com/Ju571nK/lodeline-manager/internal/auth"
+	"github.com/Ju571nK/lodeline-manager/internal/httputil"
 )
 
-const oidcBindingCookie = "sigil_oidc_binding"
+const oidcBindingCookie = "lodeline_oidc_binding"
 
 func (s *Server) handleAuthMethods(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Cache-Control", "no-store")

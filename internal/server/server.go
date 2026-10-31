@@ -7,8 +7,8 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 
-	"github.com/Ju571nK/sigil-manager/internal/api"
-	apiv1 "github.com/Ju571nK/sigil-manager/internal/api/v1"
+	"github.com/Ju571nK/lodeline-manager/internal/api"
+	apiv1 "github.com/Ju571nK/lodeline-manager/internal/api/v1"
 )
 
 // NewRouter constructs the top-level chi router. Pass nil for v1Server in

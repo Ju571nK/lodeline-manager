@@ -31,7 +31,7 @@ export function RiskTable({ rows, isPending }: Props) {
           <th className="px-3 py-2 font-medium">Top tool</th>
           <th className="px-3 py-2 font-medium">Reasons</th>
           <th className="px-3 py-2 font-medium">
-            <span title="Trailing-24h alert count — events matching the producer's alerts definition (ai_guard high/critical + 5 kinds). Alert-definition filtered as of sigil #21 (contract §14.9.4).">
+            <span title="Trailing-24h alert count — events matching the producer's alerts definition (ai_guard high/critical + 5 kinds). Alert-definition filtered as of lodeline #21 (contract §14.9.4).">
               Alerts 24h
             </span>
           </th>

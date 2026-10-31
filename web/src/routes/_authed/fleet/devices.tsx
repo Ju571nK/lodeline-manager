@@ -44,8 +44,8 @@ function DevicesTab() {
   return (
     <div className="space-y-3">
       <p className="text-sm text-text-muted">
-        Hosts observed by Sigil, including devices without a risk assessment. This is not a complete
-        corporate asset inventory.
+        Hosts observed by Lodeline, including devices without a risk assessment. This is not a
+        complete corporate asset inventory.
       </p>
       <div className="flex flex-wrap items-end gap-3 text-xs text-text-muted">
         <label className="grid gap-1">

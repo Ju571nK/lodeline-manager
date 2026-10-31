@@ -14,9 +14,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/Ju571nK/sigil-manager/internal/auth"
-	"github.com/Ju571nK/sigil-manager/internal/fleet"
-	"github.com/Ju571nK/sigil-manager/internal/triage"
+	"github.com/Ju571nK/lodeline-manager/internal/auth"
+	"github.com/Ju571nK/lodeline-manager/internal/fleet"
+	"github.com/Ju571nK/lodeline-manager/internal/triage"
 )
 
 // testHarness wires a real Mock fleet client + in-memory triage repo + JWT

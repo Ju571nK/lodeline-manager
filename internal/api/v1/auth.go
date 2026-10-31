@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/Ju571nK/sigil-manager/internal/auth"
-	"github.com/Ju571nK/sigil-manager/internal/httputil"
+	"github.com/Ju571nK/lodeline-manager/internal/auth"
+	"github.com/Ju571nK/lodeline-manager/internal/httputil"
 )
 
 // loginRequest is the body of POST /api/v1/auth/login.

@@ -10,7 +10,7 @@ import (
 
 // MockClient is an in-process [Client] implementation backed by deterministic
 // fixtures. Toggled via MOCK_FLEET=1 (config.IsMockFleet); used in local dev
-// when no sigil-server is running and in unit tests. Safe for concurrent reads.
+// when no lodeline-server is running and in unit tests. Safe for concurrent reads.
 //
 // Fixtures cover the §14.5 aggregate checklist: 5 hosts (healthy/stale/
 // disconnected mix), one host with full HostMetaSnapshot + one with null,
@@ -666,7 +666,7 @@ func eventRecipes() []eventRecipe {
 		// --- A few warn events that aren't ai_guard_risk_assessed (sender_lag etc.) ---
 		{hAlice, "warn", srcAgent, subjAgent, `{"kind":"sender_lag_critical","queue_depth":1532}`},
 		{hCarol, "warn", srcAgent, subjAgent, `{"kind":"agent_dying","reason":"oom"}`},
-		{hEve, "warn", srcAgent, subjAgent, `{"kind":"tls_failure","peer":"sigil-server"}`},
+		{hEve, "warn", srcAgent, subjAgent, `{"kind":"tls_failure","peer":"lodeline-server"}`},
 		{hAlice, "warn", srcAgent, subjAgent, `{"kind":"host_id_fingerprint_drift","old":"abc","new":"def"}`},
 
 		// --- Reattestations + file changes (info-level) ---

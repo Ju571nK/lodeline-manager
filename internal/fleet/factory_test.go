@@ -20,7 +20,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/Ju571nK/sigil-manager/internal/config"
+	"github.com/Ju571nK/lodeline-manager/internal/config"
 )
 
 type testCert struct {
@@ -52,7 +52,7 @@ func writePEM(t *testing.T, path, kind string, der []byte) {
 	require.NoError(t, os.WriteFile(path, pem.EncodeToMemory(&pem.Block{Type: kind, Bytes: der}), 0o600))
 }
 
-// mtlsServer starts a sigil-server stand-in that, like sigil-server with
+// mtlsServer starts a lodeline-server stand-in that, like lodeline-server with
 // client_ca_path set, refuses any connection without a client certificate
 // from its CA. It returns the server and the paths a manager would be given.
 func mtlsServer(t *testing.T) (srv *httptest.Server, caPath, certPath, keyPath string) {
@@ -62,11 +62,11 @@ func mtlsServer(t *testing.T) (srv *httptest.Server, caPath, certPath, keyPath s
 		KeyUsage: x509.KeyUsageCertSign,
 	}, nil)
 	server := issue(t, &x509.Certificate{
-		Subject: pkix.Name{CommonName: "sigil-server"}, IPAddresses: []net.IP{net.ParseIP("127.0.0.1")},
+		Subject: pkix.Name{CommonName: "lodeline-server"}, IPAddresses: []net.IP{net.ParseIP("127.0.0.1")},
 		ExtKeyUsage: []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth}, KeyUsage: x509.KeyUsageDigitalSignature,
 	}, ca)
 	client := issue(t, &x509.Certificate{
-		Subject:     pkix.Name{CommonName: "sigil-manager"},
+		Subject:     pkix.Name{CommonName: "lodeline-manager"},
 		ExtKeyUsage: []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth}, KeyUsage: x509.KeyUsageDigitalSignature,
 	}, ca)
 
@@ -97,16 +97,16 @@ func mtlsServer(t *testing.T) (srv *httptest.Server, caPath, certPath, keyPath s
 func managerEnv(t *testing.T, baseURL string, extra map[string]string) {
 	t.Helper()
 	env := map[string]string{
-		"SIGIL_SERVER_BASE_URL":         baseURL,
-		"SIGIL_SERVER_READ_TOKEN":       "token",
-		"ADMIN_USERNAME":                "admin",
-		"ADMIN_PASSWORD_BCRYPT":         "$2a$04$abcdefghijklmnopqrstuuFooBarBazQuuxCorgePloghTes12tHashXY",
-		"JWT_SECRET":                    "abcdefghijklmnopqrstuvwxyzABCDEF",
-		"FLEET_CACHE_DISABLED":          "1",
-		"MOCK_FLEET":                    "",
-		"SIGIL_SERVER_CA_PATH":          "",
-		"SIGIL_SERVER_CLIENT_CERT_PATH": "",
-		"SIGIL_SERVER_CLIENT_KEY_PATH":  "",
+		"LODELINE_SERVER_BASE_URL":         baseURL,
+		"LODELINE_SERVER_READ_TOKEN":       "token",
+		"ADMIN_USERNAME":                   "admin",
+		"ADMIN_PASSWORD_BCRYPT":            "$2a$04$abcdefghijklmnopqrstuuFooBarBazQuuxCorgePloghTes12tHashXY",
+		"JWT_SECRET":                       "abcdefghijklmnopqrstuvwxyzABCDEF",
+		"FLEET_CACHE_DISABLED":             "1",
+		"MOCK_FLEET":                       "",
+		"LODELINE_SERVER_CA_PATH":          "",
+		"LODELINE_SERVER_CLIENT_CERT_PATH": "",
+		"LODELINE_SERVER_CLIENT_KEY_PATH":  "",
 	}
 	for k, v := range extra {
 		env[k] = v
@@ -119,9 +119,9 @@ func managerEnv(t *testing.T, baseURL string, extra map[string]string) {
 func TestNewFromConfig_ReachesMTLSServerWithClientCert(t *testing.T) {
 	srv, caPath, certPath, keyPath := mtlsServer(t)
 	managerEnv(t, srv.URL, map[string]string{
-		"SIGIL_SERVER_CA_PATH":          caPath,
-		"SIGIL_SERVER_CLIENT_CERT_PATH": certPath,
-		"SIGIL_SERVER_CLIENT_KEY_PATH":  keyPath,
+		"LODELINE_SERVER_CA_PATH":          caPath,
+		"LODELINE_SERVER_CLIENT_CERT_PATH": certPath,
+		"LODELINE_SERVER_CLIENT_KEY_PATH":  keyPath,
 	})
 	cfg, err := config.Load()
 	require.NoError(t, err)
@@ -133,7 +133,7 @@ func TestNewFromConfig_ReachesMTLSServerWithClientCert(t *testing.T) {
 
 func TestNewFromConfig_MTLSServerRejectsManagerWithoutClientCert(t *testing.T) {
 	srv, caPath, _, _ := mtlsServer(t)
-	managerEnv(t, srv.URL, map[string]string{"SIGIL_SERVER_CA_PATH": caPath})
+	managerEnv(t, srv.URL, map[string]string{"LODELINE_SERVER_CA_PATH": caPath})
 	cfg, err := config.Load()
 	require.NoError(t, err)
 

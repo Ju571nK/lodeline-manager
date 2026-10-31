@@ -5,9 +5,9 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
-	"github.com/Ju571nK/sigil-manager/internal/auth"
-	"github.com/Ju571nK/sigil-manager/internal/fleet"
-	"github.com/Ju571nK/sigil-manager/internal/triage"
+	"github.com/Ju571nK/lodeline-manager/internal/auth"
+	"github.com/Ju571nK/lodeline-manager/internal/fleet"
+	"github.com/Ju571nK/lodeline-manager/internal/triage"
 )
 
 // AuthConfig is the subset of [config.Config] this package needs. Decoupled

@@ -76,7 +76,7 @@ function LoginPage() {
       <div className="w-full max-w-sm rounded-md border border-border bg-bg-surface p-6 shadow-lg">
         <div className="mb-6 flex items-center gap-2">
           <span className="text-accent text-lg">◆</span>
-          <span className="font-semibold text-text-primary">sigil-manager</span>
+          <span className="font-semibold text-text-primary">lodeline-manager</span>
         </div>
         {search.oidc_error && (
           <p role="alert" className="mb-4 text-sm text-sev-critical">

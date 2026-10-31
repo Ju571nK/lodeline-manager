@@ -149,5 +149,5 @@ test('AI Guard event detail displays observation context and values', async ({ p
   await expect(settings.getByText('false', { exact: true })).toBeVisible();
   await expect(settings.getByText(/not proof of runtime enforcement/)).toBeVisible();
   await expect(settings.locator('time')).toBeVisible();
-  await page.screenshot({ path: '/tmp/sigil-manager-observed-controls-event.png', fullPage: true });
+  await page.screenshot({ path: '/tmp/lodeline-manager-observed-controls-event.png', fullPage: true });
 });

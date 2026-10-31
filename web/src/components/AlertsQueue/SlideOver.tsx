@@ -109,7 +109,7 @@ function SlideOverBody({
 
   const ensureSnapshot = (): unknown => {
     // Server only honors evidence_snapshot on insert; sending the event's
-    // raw evidence payload makes the row survive sigil-server JSONL
+    // raw evidence payload makes the row survive lodeline-server JSONL
     // retention pruning (contract §13).
     return event.evidence;
   };
@@ -412,7 +412,7 @@ function FactGrid({
 }
 
 /**
- * Per-kind facts for a sigil-hook evidence (contract §14.9.2). Each variant
+ * Per-kind facts for a lodeline-hook evidence (contract §14.9.2). Each variant
  * surfaces its salient fields; optional wire fields are rendered only when
  * present so an absent `Option` doesn't show an empty row.
  */

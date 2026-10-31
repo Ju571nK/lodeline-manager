@@ -1,5 +1,5 @@
 /**
- * sigil-manager API client. Every fetch in the SPA goes through here so:
+ * lodeline-manager API client. Every fetch in the SPA goes through here so:
  *   - credentials are always 'include' (the session cookie is HttpOnly +
  *     SameSite=Lax; the browser handles it for us as long as we include),
  *   - JSON is always the wire format,
@@ -54,7 +54,7 @@ export class NotFoundError extends ApiError {
   }
 }
 
-/** 503: upstream sigil-server is rebuilding its index (F15). */
+/** 503: upstream lodeline-server is rebuilding its index (F15). */
 export class ServiceUnavailableError extends ApiError {
   constructor(message = 'service unavailable') {
     super(503, 'service_unavailable', message);

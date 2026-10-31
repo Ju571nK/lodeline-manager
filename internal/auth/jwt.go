@@ -8,12 +8,12 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-// JWT signing constants. HS256 is the only algorithm sigil-manager
+// JWT signing constants. HS256 is the only algorithm lodeline-manager
 // accepts — `none` and asymmetric algorithms are rejected by Verify.
 const (
 	signingMethod    = "HS256"
 	minSecretBytes   = 32
-	defaultIssuer    = "sigil-manager"
+	defaultIssuer    = "lodeline-manager"
 	subjectMaxLength = 256
 )
 
@@ -112,7 +112,7 @@ func (s *Signer) SignUntil(subject string, deadline time.Time) (string, time.Tim
 //   - alg == HS256 (rejects `none`, RS256, etc.)
 //   - signature matches our secret
 //   - exp / nbf / iat respect the injected clock
-//   - iss == "sigil-manager"
+//   - iss == "lodeline-manager"
 //   - subject is non-empty
 func (s *Signer) Verify(token string) (string, error) {
 	sub, _, err := s.VerifyWithExp(token)
