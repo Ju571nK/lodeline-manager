@@ -85,7 +85,7 @@ Everything goes to `${TMPDIR:-/tmp}/lodeline-manager-verify/<run>/evidence/`, ou
 | `<label>.cmd`, `.status`, `.headers`, `.body` | An API call. `.headers` hides the session cookie value. |
 | `<label>.cmd`, `.rows` | A SQL read. |
 
-Evidence holds your local `TMPDIR` path, so quote it in a PR only after you replace that path.
+Evidence holds your local `TMPDIR` path, so quote it in a PR only after you replace that path. `trace.zip` and the screenshots can hold a live session token, so never paste or commit them. The token dies with the run's server.
 
 Proof standards:
 

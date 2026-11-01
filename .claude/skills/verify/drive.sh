@@ -194,10 +194,11 @@ cmd_api() {
   require_live_scratch
   [ $# -ge 4 ] && [ $# -le 5 ] || usage
   local label="$2" method="$3" path="$4" body="${5:-}" status
+  case "$path" in /*) ;; *) die "path must start with /: $path" ;; esac
   claim_label "$label"
   local args=(-D "$scratch/headers" -o "$evidence/$label.body" -w '%{http_code}'
     -b "$scratch/cookies" -c "$scratch/cookies" -X "$method")
-  [ -z "$body" ] || args+=(-H 'Content-Type: application/json' --data-binary "$body")
+  [ -z "$body" ] || args+=(-H 'Content-Type: application/json' --data-raw "$body")
   printf '%s %s\n%s\n' "$method" "$path" "$body" >"$evidence/$label.cmd"
   status="$(http "${args[@]}" "$(url "$path")")"
   echo "$status" >"$evidence/$label.status"
@@ -214,6 +215,7 @@ cmd_db() {
   require_live_scratch
   [ $# -eq 3 ] || usage
   local label="$2" sql="$3"
+  case "${sql#"${sql%%[![:space:]]*}"}" in .*) die "sql must not start with a sqlite dot-command: $sql" ;; esac
   claim_label "$label"
   echo "$sql" >"$evidence/$label.cmd"
   sqlite3 -readonly -header "$scratch/triage.sqlite" "$sql" | tee "$evidence/$label.rows"
