@@ -1,5 +1,10 @@
 # lodeline-manager
 
+> **This project has moved.** It now lives in
+> [Ju571nK/lodeline](https://github.com/Ju571nK/lodeline) under `apps/manager/`.
+> Open new issues and pull requests there.
+> This repository gets no new features and no releases.
+
 ![License](https://img.shields.io/badge/license-Apache%202.0-blue)
 
 Self-hostable web console for the [Lodeline](https://github.com/Ju571nK/lodeline)
